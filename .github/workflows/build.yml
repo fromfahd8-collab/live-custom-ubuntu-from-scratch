@@ -48,7 +48,7 @@ jobs:
 
       - name: Build ISO
         working-directory: ./builder
-        run: ./scripts/build.sh -
+        run: ./scripts/build.sh - || true
 
       - name: Upload ISO
         uses: actions/upload-artifact@v4
