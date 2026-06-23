@@ -50,9 +50,16 @@ jobs:
         working-directory: ./builder
         run: ./scripts/build.sh - || true
 
+      - name: Find ISO File
+        run: |
+          echo "=== بدور على الأيزو ==="
+          find ./builder -name "*.iso" -type f
+          echo "=== حجم الفولدر ==="
+          du -sh ./builder
+
       - name: Upload ISO
         uses: actions/upload-artifact@v4
         with:
           name: kso-win1-iso
-          path: builder/output/live-cd.iso
+          path: builder/*.iso
           retention-days: 5
