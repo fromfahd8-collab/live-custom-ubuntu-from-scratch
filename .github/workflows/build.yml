@@ -1,0 +1,41 @@
+name: Build Win1 ISO for KSO
+on: workflow_dispatch
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup KSO Branding
+        run: |
+          sed -i 's/LIVE_CD_LABEL="Custom Ubuntu"/LIVE_CD_LABEL="برمجة عبد الله و عبد الرحمن هاني [ kso ]"/g' build.sh
+          cat > config/chroot_commands.sh << 'EOF'
+          #!/bin/bash
+          apt-get update
+          apt-get install -y icewm xserver-xorg xinit imagemagick
+          mkdir -p /etc/skel/.icewm
+          cat > /etc/skel/.icewm/preferences << 'PREF'
+          ColorActiveTitleBar="0 0 128"
+          ColorNormalTitleBar="128 128 128"
+          ColorDefaultTaskBar="192 192 192"
+          DesktopBackgroundColor="0 0 128"
+          TaskBarShowClock=0
+          PREF
+          convert -size 1024x768 xc:#000080 -fill white -pointsize 35 -gravity center -annotate +0+0 'برمجة عبد الله و عبد الرحمن هاني [ kso ]' /usr/share/backgrounds/win1.png
+          echo 'DesktopBackgroundImage="/usr/share/backgrounds/win1.png"' >> /etc/skel/.icewm/preferences
+          echo '[ kso ] OS' > /etc/hostname
+          echo '[ kso ] OS - Windows 1 \n \l' > /etc/issue
+          sed -i 's/Ubuntu/[ kso ] OS/g' /usr/lib/os-release
+          echo 'exec icewm-session' > /etc/skel/.xinitrc
+          systemctl set-default graphical.target
+          EOF
+          
+      - name: Build ISO
+        run: sudo ./build.sh
+        
+      - name: Upload ISO
+        uses: actions/upload-artifact@v4
+        with:
+          name: kso-win1-iso
+          path: output/live-cd.iso
