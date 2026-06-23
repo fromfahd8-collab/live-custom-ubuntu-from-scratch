@@ -9,27 +9,22 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y debootstrap squashfs-tools xorriso grub-pc-bin grub-efi-amd64-bin mtools wget imagemagick git
-          
+
       - name: Clone Original Ubuntu Builder
         run: |
           git clone https://github.com/mvallim/live-custom-ubuntu-from-scratch.git builder
-          cd builder
-          echo "=== Files in builder ==="
-          ls -la
-          echo "=== Files in scripts ==="
-          ls -la scripts/
-          
+
       - name: Setup KSO Branding
         working-directory: ./builder
         run: |
           chmod +x scripts/build.sh
-          sudo sed -i 's/LIVE_CD_LABEL="Custom Ubuntu"/LIVE_CD_LABEL="برمجة عبد الله و عبد الرحمن هاني [ kso ]"/g' scripts/build.sh
-          sudo mkdir -p config
-          sudo tee config/chroot_commands.sh > /dev/null << 'EOF'
+          sed -i 's/LIVE_CD_LABEL="Custom Ubuntu"/LIVE_CD_LABEL="برمجة عبد الله و عبد الرحمن هاني [ kso ]"/g' scripts/build.sh
+          mkdir -p config
+          tee config/chroot_commands.sh > /dev/null << 'EOF'
           #!/bin/bash
           export DEBIAN_FRONTEND=noninteractive
           apt-get update
-          apt-get install -y icewm xserver-xorg xinit imagemagick
+          apt-get install -y icewm xserver-xorg xinit imagemagick x11-xserver-utils
           mkdir -p /etc/skel/.icewm
           cat > /etc/skel/.icewm/preferences << 'PREF'
           ColorActiveTitleBar="0 0 128"
@@ -37,6 +32,9 @@ jobs:
           ColorDefaultTaskBar="192 192 192"
           DesktopBackgroundColor="0 0 128"
           TaskBarShowClock=0
+          TaskBarShowAPMStatus=0
+          TaskBarShowMailboxStatus=0
+          ShowTaskBar=1
           PREF
           convert -size 1024x768 xc:#000080 -fill white -pointsize 35 -gravity center -annotate +0+0 'برمجة عبد الله و عبد الرحمن هاني [ kso ]' /usr/share/backgrounds/win1.png
           echo 'DesktopBackgroundImage="/usr/share/backgrounds/win1.png"' >> /etc/skel/.icewm/preferences
@@ -46,12 +44,12 @@ jobs:
           echo 'exec icewm-session' > /etc/skel/.xinitrc
           systemctl set-default graphical.target
           EOF
-          sudo chmod +x config/chroot_commands.sh
-          
+          chmod +x config/chroot_commands.sh
+
       - name: Build ISO
         working-directory: ./builder
-        run: sudo ./scripts/build.sh
-        
+        run: ./scripts/build.sh
+
       - name: Upload ISO
         uses: actions/upload-artifact@v4
         with:
