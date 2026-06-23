@@ -19,6 +19,9 @@ jobs:
         run: |
           chmod +x scripts/build.sh
           sed -i 's/LIVE_CD_LABEL="Custom Ubuntu"/LIVE_CD_LABEL="برمجة عبد الله و عبد الرحمن هاني [ kso ]"/g' scripts/build.sh
+          # نصلح الـ umount جوه السكريبت نفسه عشان ميبوظش
+          sed -i 's/umount $1/umount $1 || true/g' scripts/chroot_build.sh
+          sed -i 's/umount -lf $1/umount -lf $1 || true/g' scripts/chroot_build.sh
           mkdir -p config
           tee config/chroot_commands.sh > /dev/null << 'EOF'
           #!/bin/bash
@@ -48,18 +51,21 @@ jobs:
 
       - name: Build ISO
         working-directory: ./builder
-        run: ./scripts/build.sh - || true
+        run: sudo ./scripts/build.sh -
 
       - name: Find ISO File
         run: |
           echo "=== بدور على الأيزو ==="
-          find ./builder -name "*.iso" -type f
-          echo "=== حجم الفولدر ==="
-          du -sh ./builder
+          sudo find ./builder -name "*.iso" -type f || true
+          echo "=== محتويات الفولدر ==="
+          sudo ls -la ./builder/ || true
 
       - name: Upload ISO
         uses: actions/upload-artifact@v4
         with:
           name: kso-win1-iso
-          path: builder/*.iso
+          path: |
+            builder/*.iso
+            builder/output/*.iso
+          if-no-files-found: error
           retention-days: 5
