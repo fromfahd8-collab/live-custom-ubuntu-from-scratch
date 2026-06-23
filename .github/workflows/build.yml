@@ -5,18 +5,8 @@ jobs:
   build:
     runs-on: ubuntu-22.04
     steps:
-      - name: Checkout Repo
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-          
-      - name: Show Files Debug
-        run: |
-          echo "=== Files in repo ==="
-          ls -la
-          echo "=== Build script check ==="
-          cat build.sh | head -5
-          
+      - uses: actions/checkout@v4
+      
       - name: Install Dependencies
         run: |
           sudo apt-get update
