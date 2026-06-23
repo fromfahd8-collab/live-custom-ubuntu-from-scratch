@@ -5,31 +5,45 @@ jobs:
   build:
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
       
+      - name: Install Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y debootstrap squashfs-tools xorriso grub-pc-bin grub-efi-amd64-bin mtools wget
+          
+      - name: Fix Permissions
+        run: chmod +x build.sh
+          
       - name: Setup KSO Branding
         run: |
-          sed -i 's/LIVE_CD_LABEL="Custom Ubuntu"/LIVE_CD_LABEL="برمجة عبد الله و عبد الرحمن هاني [ kso ]"/g' build.sh
-          cat > config/chroot_commands.sh << 'EOF'
+          sudo sed -i 's/LIVE_CD_LABEL="Custom Ubuntu"/LIVE_CD_LABEL="برمجة عبد الله و عبد الرحمن هاني [ kso ]"/g' ./build.sh
+          sudo mkdir -p config
+          sudo tee config/chroot_commands.sh > /dev/null << 'EOF'
           #!/bin/bash
+          export DEBIAN_FRONTEND=noninteractive
           apt-get update
-          apt-get install -y icewm xserver-xorg xinit imagemagick
+          apt-get install -y icewm xserver-xorg xinit imagemagick x11-xserver-utils
           mkdir -p /etc/skel/.icewm
           cat > /etc/skel/.icewm/preferences << 'PREF'
           ColorActiveTitleBar="0 0 128"
-          ColorNormalTitleBar="128 128 128"
+          ColorNormalTitleBar="128 128 128" 
           ColorDefaultTaskBar="192 192 192"
           DesktopBackgroundColor="0 0 128"
           TaskBarShowClock=0
+          TaskBarShowAPMStatus=0
+          TaskBarShowMailboxStatus=0
           PREF
           convert -size 1024x768 xc:#000080 -fill white -pointsize 35 -gravity center -annotate +0+0 'برمجة عبد الله و عبد الرحمن هاني [ kso ]' /usr/share/backgrounds/win1.png
           echo 'DesktopBackgroundImage="/usr/share/backgrounds/win1.png"' >> /etc/skel/.icewm/preferences
           echo '[ kso ] OS' > /etc/hostname
           echo '[ kso ] OS - Windows 1 \n \l' > /etc/issue
-          sed -i 's/Ubuntu/[ kso ] OS/g' /usr/lib/os-release
+          sed -i 's/Ubuntu/[ kso ] OS/g' /etc/os-release
           echo 'exec icewm-session' > /etc/skel/.xinitrc
           systemctl set-default graphical.target
           EOF
+          sudo chmod +x config/chroot_commands.sh
           
       - name: Build ISO
         run: sudo ./build.sh
@@ -39,3 +53,4 @@ jobs:
         with:
           name: kso-win1-iso
           path: output/live-cd.iso
+          retention-days: 5
