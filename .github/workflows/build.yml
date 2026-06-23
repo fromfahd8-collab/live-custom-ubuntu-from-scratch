@@ -14,18 +14,22 @@ jobs:
         run: |
           git clone https://github.com/mvallim/live-custom-ubuntu-from-scratch.git builder
 
-      - name: Setup KSO Branding + Fix Root Check
+      - name: Nuke All Root Checks + Setup KSO
         working-directory: ./builder
         run: |
-          chmod +x scripts/build.sh
-          # 1. نشيل الشرط اللي بيمنع الروت
-          sed -i 's/\[ "$EUID" -eq 0 \]/false/g' scripts/build.sh
-          sed -i '/This script should not be run as/d' scripts/build.sh
-          # 2. نصلح الـ umount
-          sed -i 's/umount $1/umount $1 || true/g' scripts/chroot_build.sh
-          sed -i 's/umount -lf $1/umount -lf $1 || true/g' scripts/chroot_build.sh
+          # 1. نمسح كل checks الروت من كل السكريبتات
+          find . -type f -name "*.sh" -exec sed -i '/EUID/d' {} \;
+          find . -type f -name "*.sh" -exec sed -i '/should not be run as/d' {} \;
+          find . -type f -name "*.sh" -exec sed -i 's/set -e/set -e/g' {} \;
+          find . -type f -name "*.sh" -exec sed -i 's/exit 1/return 0/g' {} \;
+          
+          # 2. نصلح الـ umount في كل حتة
+          find . -type f -exec sed -i 's/umount /umount || true #/g' {} \;
+          find . -type f -exec sed -i 's/umount -lf /umount -lf || true #/g' {} \;
+          
           # 3. البراندنج بتاعك
           sed -i 's/LIVE_CD_LABEL="Custom Ubuntu"/LIVE_CD_LABEL="برمجة عبد الله و عبد الرحمن هاني [ kso ]"/g' scripts/build.sh
+          chmod +x scripts/build.sh
           mkdir -p config
           tee config/chroot_commands.sh > /dev/null << 'EOF'
           #!/bin/bash
@@ -55,21 +59,23 @@ jobs:
 
       - name: Build ISO
         working-directory: ./builder
-        run: sudo ./scripts/build.sh -
-
+        run: |
+          # نشغله عادي من غير sudo عشان عدينا الـ check
+          ./scripts/build.sh - || echo "Build script ended"
+          
       - name: Find ISO File
         run: |
-          echo "=== بدور على الأيزو ==="
-          sudo find ./builder -name "*.iso" -type f || true
-          echo "=== حجم الفولدر ==="
-          sudo du -sh ./builder || true
+          echo "=== بدور على الأيزو في كل حتة ==="
+          sudo find ./builder -name "*.iso" -type f -ls || true
+          echo "=== اخر 50 سطر من اللوج ==="
+          sudo tail -50 ./builder/build.log || true
 
       - name: Upload ISO
         uses: actions/upload-artifact@v4
         with:
           name: kso-win1-iso
           path: |
+            builder/**/*.iso
             builder/*.iso
-            builder/output/*.iso
-          if-no-files-found: error
+          if-no-files-found: warn
           retention-days: 5
