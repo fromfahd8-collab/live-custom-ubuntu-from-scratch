@@ -14,14 +14,18 @@ jobs:
         run: |
           git clone https://github.com/mvallim/live-custom-ubuntu-from-scratch.git builder
 
-      - name: Setup KSO Branding
+      - name: Setup KSO Branding + Fix Root Check
         working-directory: ./builder
         run: |
           chmod +x scripts/build.sh
-          sed -i 's/LIVE_CD_LABEL="Custom Ubuntu"/LIVE_CD_LABEL="برمجة عبد الله و عبد الرحمن هاني [ kso ]"/g' scripts/build.sh
-          # نصلح الـ umount جوه السكريبت نفسه عشان ميبوظش
+          # 1. نشيل الشرط اللي بيمنع الروت
+          sed -i 's/\[ "$EUID" -eq 0 \]/false/g' scripts/build.sh
+          sed -i '/This script should not be run as/d' scripts/build.sh
+          # 2. نصلح الـ umount
           sed -i 's/umount $1/umount $1 || true/g' scripts/chroot_build.sh
           sed -i 's/umount -lf $1/umount -lf $1 || true/g' scripts/chroot_build.sh
+          # 3. البراندنج بتاعك
+          sed -i 's/LIVE_CD_LABEL="Custom Ubuntu"/LIVE_CD_LABEL="برمجة عبد الله و عبد الرحمن هاني [ kso ]"/g' scripts/build.sh
           mkdir -p config
           tee config/chroot_commands.sh > /dev/null << 'EOF'
           #!/bin/bash
@@ -57,8 +61,8 @@ jobs:
         run: |
           echo "=== بدور على الأيزو ==="
           sudo find ./builder -name "*.iso" -type f || true
-          echo "=== محتويات الفولدر ==="
-          sudo ls -la ./builder/ || true
+          echo "=== حجم الفولدر ==="
+          sudo du -sh ./builder || true
 
       - name: Upload ISO
         uses: actions/upload-artifact@v4
