@@ -305,11 +305,11 @@ jobs:
           menuentry "KSO-GamerOS-PRO-101 [ kso ]" {
             linux /batocera.img
           }' | sudo tee iso/EFI/BOOT/grub.cfg
-          xorriso -as mkisofs -o KSO-GamerOS-PRO-101-3GB-UEFI.iso -iso-level 3 -udf -isohybrid-gpt-basdat -eltorito-alt-boot -e EFI/BOOT/BOOTX64.EFI -no-emul-boot -V "KSO_PRO_101" iso/
+          xorriso -as mkisofs -o KSO-GamerOS-PRO-101-3GB-UEFI.iso -iso-level 3 -isohybrid-gpt-basdat -eltorito-alt-boot -e EFI/BOOT/BOOTX64.EFI -no-emul-boot -V "KSO_PRO_101" iso/
 
       - name: Upload ISO
         uses: actions/upload-artifact@v4
         with:
           name: KSO-GamerOS-PRO-101-ISO
           path: KSO-GamerOS-PRO-101-3GB-UEFI.iso
-          retention-days: 7   
+          retention-days: 7
