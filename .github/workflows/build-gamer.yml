@@ -1,4 +1,4 @@
-name: Build KSO-GamerOS PRO 101 - 101 Games Complete
+name: Build KSO-GamerOS PRO 101 - Auto Latest
 
 on:
   workflow_dispatch:
@@ -12,30 +12,33 @@ jobs:
       - name: Install Dependencies
         run: |
           sudo apt-get update -qq
-          sudo apt-get install -y wget p7zip-full grub-efi-amd64-bin mtools squashfs-tools aria2 git fdisk grub-pc-bin xorriso curl
+          sudo apt-get install -y wget p7zip-full grub-efi-amd64-bin mtools squashfs-tools aria2 git fdisk grub-pc-bin xorriso curl jq
 
-      - name: Download Batocera 41 - 3 Working Mirrors
+      - name: Download Latest Batocera - Auto Detect
         run: |
           set -e
-          URL1="https://github.com/batocera-linux/batocera.linux/releases/download/batocera-41/batocera-x86_64-41-20250622.img.gz"
-          URL2="https://mirror.accum.se/mirror/batocera.linux/x86_64/stable/41/batocera-x86_64-41-20250622.img.gz"
-          URL3="https://mirrors.dotsrc.org/batocera/x86_64/stable/41/batocera-x86_64-41-20250622.img.gz"
+          echo "بجيب لينك آخر إصدار من Batocera..."
 
-          echo "جاري التحميل من GitHub..."
-          curl -L -f --retry 5 -o batocera.img.gz "$URL1" || \
-          (echo "GitHub فشل، بجرب الميرور التاني..." && curl -L -f --retry 5 -o batocera.img.gz "$URL2") || \
-          (echo "الميرور التاني فشل، بجرب التالت..." && curl -L -f --retry 5 -o batocera.img.gz "$URL3")
+          # هات لينك آخر img.gz من GitHub API
+          LATEST_URL=$(curl -s https://api.github.com/repos/batocera-linux/batocera.linux/releases/latest | jq -r '.assets[] | select(.name | endswith("x86_64.img.gz")) |.browser_download_url')
+
+          if [ -z "$LATEST_URL" ]; then
+            echo "ملقتش لينك، بجرب Batocera 40"
+            LATEST_URL="https://github.com/batocera-linux/batocera.linux/releases/download/40-20240404/batocera-x86_64-40-20240404.img.gz"
+          fi
+
+          echo "اللينك اللي لقيناه: $LATEST_URL"
+          curl -L -f --retry 5 -o batocera.img.gz "$LATEST_URL"
 
           FILE_SIZE=$(stat -c%s "batocera.img.gz")
           if [ "$FILE_SIZE" -lt 500000000 ]; then
             echo "Error: الملف نزل غلط حجمه $FILE_SIZE بايت بس"
-            cat batocera.img.gz
             exit 1
           fi
 
           echo "الملف تمام حجمه $FILE_SIZE بايت، بفك الضغط..."
           gunzip batocera.img.gz
-          mv batocera-x86_64-41-20250622.img batocera.img
+          mv *.img batocera.img
           ls -lh batocera.img
 
       - name: Mount IMG and Add KSO Branding
@@ -155,8 +158,8 @@ jobs:
           sudo wget -q https://github.com/JoaoBaptMG/gba-modern/raw/master/template.gba -O "09-GBA-Modern.gba" || true
           sudo wget -q https://github.com/corax89/gba_types/raw/master/test.gba -O "10-GBA-Types.gba" || true
           sudo wget -q https://github.com/felixjones/gba-toolchain/raw/master/hello.gba -O "11-Toolchain-Hello.gba" || true
-          sudo wget -q https://github.com/devkitPro/gba-examples/raw/master/template/template.gba -O "12-DevkitPro-Template.gba" || true
-          sudo wget -q https://github.com/GValiente/butano/raw/master/examples/affine_bg/affine_bg.gba -O "13-Affine-BG.gba" || true
+          sudo wget -q https://github.com/devkitPro/gba-examples/raw/master/template.gba -O "12-DevkitPro-Template.gba" || true
+          sudo wget -q https://github.com/GValiente/butano/raw/master/examples/affine_bg.gba -O "13-Affine-BG.gba" || true
           sudo wget -q https://github.com/GValiente/butano/raw/master/examples/regular_bg/regular_bg.gba -O "14-Regular-BG.gba" || true
           sudo wget -q https://github.com/GValiente/butano/raw/master/examples/sprite/sprite.gba -O "15-Sprite.gba" || true
           sudo wget -q https://github.com/GValiente/butano/raw/master/examples/text/text.gba -O "16-Text.gba" || true
