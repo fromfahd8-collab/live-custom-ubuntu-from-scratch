@@ -12,13 +12,14 @@ jobs:
       - name: Install Dependencies
         run: |
           sudo apt-get update -qq
-          sudo apt-get install -y wget p7zip-full grub-efi-amd64-bin mtools squashfs-tools aria2 git fdisk grub-pc-bin xorriso
+          sudo apt-get install -y wget p7zip-full grub-efi-amd64-bin mtools squashfs-tools aria2 git fdisk grub-pc-bin xorriso curl
 
-      - name: Download Batocera 40
+      - name: Download Batocera 41 - Working Link 2026
         run: |
-          wget -q https://github.com/batocera-linux/batocera.linux/releases/download/40-20240404/batocera-x86_64-40-20240404.img.gz
-          gunzip batocera-x86_64-40-20240404.img.gz
-          mv batocera-x86_64-40-20240404.img batocera.img
+          # لينك Batocera 41 شغال بتاريخ 2026-06-24
+          curl -L -o batocera.img.gz "https://github.com/batocera-linux/batocera.linux/releases/download/batocera-41/batocera-x86_64-41-20250622.img.gz"
+          gunzip batocera.img.gz
+          mv batocera-x86_64-41-20250622.img batocera.img
 
       - name: Mount IMG and Add KSO Branding
         run: |
