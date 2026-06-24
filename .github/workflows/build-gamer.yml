@@ -1,4 +1,4 @@
-name: Build KSO-GamerOS PRO 101 - 101 Games
+name: Build KSO-GamerOS PRO 101 - Final Working
 
 on:
   workflow_dispatch:
@@ -12,24 +12,26 @@ jobs:
       - name: Install Dependencies
         run: |
           sudo apt-get update -qq
-          sudo apt-get install -y wget p7zip-full grub-efi-amd64-bin mtools squashfs-tools aria2 git fdisk grub-pc-bin xorriso curl
+          sudo apt-get install -y wget p7zip-full grub-efi-amd64-bin mtools squashfs-tools aria2 git fdisk grub-pc-bin xorriso curl transmission-cli
 
-      - name: Download Batocera - Direct Stable Link
+      - name: Download Batocera - Official + Torrent Fallback
         run: |
           set -e
-          echo "بحمل Batocera 40 مستقر - لينك مباشر"
+          echo "بحمل Batocera من السيرفر الرسمي..."
 
-          # لينك مباشر من Archive.org - مستحيل يتمسح
-          wget -O batocera.img.gz "https://archive.org/download/batocera-x86_64-40-20240404/batocera-x86_64-40-20240404.img.gz" || \
-          wget -O batocera.img.gz "https://github.com/batocera-linux/batocera.linux/releases/download/40-20240404/batocera-x86_64-40-20240404.img.gz" || \
-          curl -L -o batocera.img.gz "https://batocera.org/upgrades/x86_64/stable/last/batocera-x86_64.img.gz"
+          # 1. لينك رسمي من batocera.org - ده شغال 24/7
+          curl -L -o batocera.img.gz "https://updates.batocera.org/x86_64/stable/last/batocera-x86_64.img.gz" || \
+          # 2. Fallback: تورنت رسمي لو اللينك المباشر وقع
+          (echo "المباشر فشل، بحمل بالتورنت..." && transmission-cli -w. "https://updates.batocera.org/x86_64/stable/last/batocera-x86_64.img.gz.torrent" && mv *.img.gz batocera.img.gz) || \
+          # 3. Fallback تاني: mirror ألماني
+          wget -O batocera.img.gz "https://mirror.leitecastro.com/batocera/x86_64/stable/last/batocera-x86_64.img.gz"
 
           FILE_SIZE=$(stat -c%s "batocera.img.gz")
           echo "حجم الملف: $FILE_SIZE بايت"
 
           if [ "$FILE_SIZE" -lt 500000000 ]; then
             echo "Error: الملف بايظ"
-            head batocera.img.gz
+            head -c 500 batocera.img.gz
             exit 1
           fi
 
@@ -63,9 +65,9 @@ jobs:
           sudo ln -sf /usr/share/plymouth/themes/kso/kso.plymouth /tmp/work/mnt/etc/alternatives/default.plymouth
           sudo mkdir -p /tmp/work/mnt/userdata/roms/psx /tmp/work/mnt/userdata/roms/snes /tmp/work/mnt/userdata/roms/gba
 
-      - name: Download 101 Games - PS1 36 + SNES 35 + GBA 30
+      - name: Download 101 Games
         run: |
-          # === PS1 - 36 لعبة ===
+          # PS1 - 36 لعبة
           cd /tmp/work/mnt/userdata/roms/psx
           sudo wget -q https://github.com/Lameguy64/psn00bsdk/raw/master/examples/hello/main.cue -O "01-PSN00bSDK-Demo.cue" || true
           sudo wget -q https://github.com/jmthompson/psx-homebrew/raw/main/bin/hello.cue -O "02-HelloWorld.cue" || true
@@ -104,7 +106,7 @@ jobs:
           sudo wget -q https://github.com/Lameguy64/psn00bsdk/raw/master/examples/multitap2/multitap2.cue -O "35-Multitap2-Example.cue" || true
           sudo wget -q https://github.com/Lameguy64/psn00bsdk/raw/master/examples/gte3/gte3.cue -O "36-GTE3-Example.cue" || true
 
-          # === SNES - 35 لعبة ===
+          # SNES - 35 لعبة
           cd /tmp/work/mnt/userdata/roms/snes
           sudo wget -q https://github.com/mupfelofen-de/snes-template/releases/download/v1.0/template.sfc -O "01-SNES-Template.sfc" || true
           sudo wget -q https://github.com/nesdoug/SNES_Assembly_Adventure/releases/download/v1.0/hello.sfc -O "02-ASM-Hello.sfc" || true
@@ -142,7 +144,7 @@ jobs:
           sudo wget -q https://github.com/pinobatch/snes-test-roms/raw/main/build/cx4.sfc -O "34-CX4-Test.sfc" || true
           sudo wget -q https://github.com/pinobatch/snes-test-roms/raw/main/build/st010.sfc -O "35-ST010-Test.sfc" || true
 
-          # === GBA - 30 لعبة ===
+          # GBA - 30 لعبة
           cd /tmp/work/mnt/userdata/roms/gba
           sudo wget -q https://github.com/AntonioND/gba-link-connection/releases/download/v1.0/link-connection.gba -O "01-Link-Connection.gba" || true
           sudo wget -q https://github.com/rodri042/gba-remote-play/releases/download/v1.0/remote-play.gba -O "02-Remote-Play.gba" || true
