@@ -24,8 +24,8 @@ jobs:
 
       - name: Download Windows 11 ISO
         run: |
-          # حط لينك الويندوز هنا - ابعتلي "هات لينك" اجيبهولك
-          aria2c -x16 -s16 "https://software.download.prss.microsoft.com/dbazure/Win11_23H2_Arabic_x64v2.iso?t=YOUR_LINK_HERE" -o win11.iso
+          # لينك ويندوز 11 عربي 23H2 رسمي من مايكروسوفت
+          aria2c -x16 -s16 "https://software.download.prss.microsoft.com/dbazure/Win11_23H2_Arabic_x64.iso" -o win11.iso
 
       - name: Extract ISO
         run: 7z x win11.iso -oiso_extract
@@ -43,30 +43,25 @@ jobs:
       - name: Team KSO Branding - البوت + السيستم
         run: |
           # === 1. تعديل شاشة البوت ===
-          # ده اللي بيظهر والويندوز بيقوم
-          sed -i 's/Microsoft Corporation/Team KSO - Abdullah & Abdelrahman Hany/g' boot_mount/Windows/Boot/Resources/en-US/bootres.dll.mui
+          sed -i 's/Microsoft Corporation/Team KSO - برمجة عبد الله و عبد الرحمن هاني/g' boot_mount/Windows/Boot/Resources/en-US/bootres.dll.mui
           sed -i 's/Microsoft Corporation/Team KSO - عبد الله و عبد الرحمن هاني/g' boot_mount/Windows/Boot/Resources/ar-SA/bootres.dll.mui
 
-          # === 2. تعديل install.wim زي ما هو ===
-          # شيل البرامج التقيلة
+          # === 2. تعديل install.wim ===
           rm -rf wim_mount/Windows/SystemApps/Microsoft.MicrosoftEdge_8wekyb3d8bbwe
           rm -rf wim_mount/Windows/SystemApps/Microsoft.Windows.Cortana_cw5n1h2txyewy
 
-          # غير اسم النسخة في النظام
           sed -i 's/Microsoft Windows/Team KSO Windows/g' wim_mount/Windows/System32/en-US/winbrand.dll.mui
           sed -i 's/Microsoft Windows/Team KSO Windows/g' wim_mount/Windows/System32/ar-SA/winbrand.dll.mui
 
-          # معلومات KSO في System Info
           mkdir -p wim_mount/Windows/System32/oobe/info
           cat > wim_mount/Windows/System32/oobe/info/oeminfo.ini << 'EOF'
           [General]
           Manufacturer=Team KSO
           Model=KSO Win1 Edition
-          SubModel=برمجة عبد الله و عبد الرحمن هاني
+          SubModel=برمجة عبد الله و عبد الرحمن هاني [ KSO ]
           SupportURL=https://github.com/fromfahd8
           EOF
 
-          # ملف نصي على سطح المكتب
           mkdir -p wim_mount/Users/Default/Desktop
           echo "Team KSO Edition" > wim_mount/Users/Default/Desktop/KSO.txt
           echo "برمجة: عبد الله و عبد الرحمن هاني [ KSO ]" >> wim_mount/Users/Default/Desktop/KSO.txt
