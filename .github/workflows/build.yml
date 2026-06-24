@@ -1,81 +1,94 @@
 name: Build Win1 ISO for KSO
-on: workflow_dispatch
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
 
 jobs:
   build:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-22.04-4core
+    timeout-minutes: 360
+    
     steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Free up disk space
+        run: |
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /opt/ghc
+          sudo rm -rf "/usr/local/share/boost"
+          sudo rm -rf "$AGENT_TOOLSDIRECTORY"
+          df -h
+
       - name: Install Dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y debootstrap squashfs-tools xorriso grub-pc-bin grub-efi-amd64-bin mtools wget imagemagick git
+          sudo apt-get install -y squashfs-tools genisoimage p7zip-full wget
 
       - name: Clone Original Ubuntu Builder
         run: |
-          git clone https://github.com/mvallim/live-custom-ubuntu-from-scratch.git builder
+          git clone https://github.com/mvallim/live-custom-ubuntu-from-scratch.git
+          cp -r live-custom-ubuntu-from-scratch/* .
 
-      - name: Nuke All Root Checks + Setup KSO
-        working-directory: ./builder
+      - name: Nuke All Root Checks + Setup KSO Team
         run: |
-          # 1. نمسح كل checks الروت من كل السكريبتات
-          find . -type f -name "*.sh" -exec sed -i '/EUID/d' {} \;
-          find . -type f -name "*.sh" -exec sed -i '/should not be run as/d' {} \;
-          find . -type f -name "*.sh" -exec sed -i 's/set -e/set -e/g' {} \;
-          find . -type f -name "*.sh" -exec sed -i 's/exit 1/return 0/g' {} \;
+          # شيل فحص الروت
+          find . -type f -exec sed -i 's/\[ "$(id -u)" -eq 0 \]//g' {} +
+          find . -type f -exec sed -i 's/\[ "$(id -u)" -ne 0 \]//g' {} +
           
-          # 2. نصلح الـ umount في كل حتة
-          find . -type f -exec sed -i 's/umount /umount || true #/g' {} \;
-          find . -type f -exec sed -i 's/umount -lf /umount -lf || true #/g' {} \;
+          # عدل الاسم وبيانات المبرمجين
+          sed -i 's/Ubuntu/KSO-Win1/g' config/*
+          echo "KSO-Win1" > etc/hostname
           
-          # 3. البراندنج بتاعك
-          sed -i 's/LIVE_CD_LABEL="Custom Ubuntu"/LIVE_CD_LABEL="برمجة عبد الله و عبد الرحمن هاني [ kso ]"/g' scripts/build.sh
-          chmod +x scripts/build.sh
-          mkdir -p config
-          tee config/chroot_commands.sh > /dev/null << 'EOF'
-          #!/bin/bash
-          export DEBIAN_FRONTEND=noninteractive
-          apt-get update
-          apt-get install -y icewm xserver-xorg xinit imagemagick x11-xserver-utils
-          mkdir -p /etc/skel/.icewm
-          cat > /etc/skel/.icewm/preferences << 'PREF'
-          ColorActiveTitleBar="0 0 128"
-          ColorNormalTitleBar="128 128 128"
-          ColorDefaultTaskBar="192 192 192"
-          DesktopBackgroundColor="0 0 128"
-          TaskBarShowClock=0
-          TaskBarShowAPMStatus=0
-          TaskBarShowMailboxStatus=0
-          ShowTaskBar=1
-          PREF
-          convert -size 1024x768 xc:#000080 -fill white -pointsize 35 -gravity center -annotate +0+0 'برمجة عبد الله و عبد الرحمن هاني [ kso ]' /usr/share/backgrounds/win1.png
-          echo 'DesktopBackgroundImage="/usr/share/backgrounds/win1.png"' >> /etc/skel/.icewm/preferences
-          echo '[ kso ] OS' > /etc/hostname
-          echo '[ kso ] OS - Windows 1 \n \l' > /etc/issue
-          sed -i 's/Ubuntu/[ kso ] OS/g' /etc/os-release
-          echo 'exec icewm-session' > /etc/skel/.xinitrc
-          systemctl set-default graphical.target
-          EOF
-          chmod +x config/chroot_commands.sh
+          # حط أساميكم في ملفات النظام
+          echo "KSO-Win1 1.0 \n \l" > etc/issue
+          echo "برمجة: عبد الله و عبد الرحمن هاني [KSO]" >> etc/issue
+          echo "" >> etc/issue
+          
+          # ملف os-release عشان يظهر في neofetch
+          echo 'NAME="KSO-Win1"' > etc/os-release
+          echo 'VERSION="1.0"' >> etc/os-release
+          echo 'ID=kso' >> etc/os-release
+          echo 'PRETTY_NAME="KSO-Win1 1.0 - برمجة عبد الله و عبد الرحمن هاني"' >> etc/os-release
+          echo 'HOME_URL="https://github.com"' >> etc/os-release
+          
+          # رسالة ترحيب في الترمنال
+          mkdir -p etc/skel
+          echo 'echo "=================================="' >> etc/skel/.bashrc
+          echo 'echo "   مرحباً بك في KSO-Win1 v1.0"' >> etc/skel/.bashrc
+          echo 'echo "   برمجة: عبد الله و عبد الرحمن هاني [KSO]"' >> etc/skel/.bashrc
+          echo 'echo "=================================="' >> etc/skel/.bashrc
+          
+      - name: Build ISO - 4 Cores
+        run: |
+          chmod +x build.sh
+          export JOBS=4
+          sudo -E ./build.sh
 
-      - name: Build ISO
-        working-directory: ./builder
-        run: |
-          # نشغله عادي من غير sudo عشان عدينا الـ check
-          ./scripts/build.sh - || echo "Build script ended"
-          
       - name: Find ISO File
+        id: find_iso
         run: |
-          echo "=== بدور على الأيزو في كل حتة ==="
-          sudo find ./builder -name "*.iso" -type f -ls || true
-          echo "=== اخر 50 سطر من اللوج ==="
-          sudo tail -50 ./builder/build.log || true
+          ISO_PATH=$(find . -name "*.iso" | head -1)
+          echo "iso_path=$ISO_PATH" >> $GITHUB_OUTPUT
+          ls -lh $ISO_PATH
 
       - name: Upload ISO
         uses: actions/upload-artifact@v4
         with:
           name: kso-win1-iso
-          path: |
-            builder/**/*.iso
-            builder/*.iso
-          if-no-files-found: warn
-          retention-days: 5
+          path: ${{ steps.find_iso.outputs.iso_path }}
+          
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        if: success()
+        with:
+          tag_name: v1.0-${{ github.run_number }}
+          name: KSO-Win1 v1.0 - Team KSO
+          body: |
+            نظام KSO-Win1 خفيف وسريع
+            برمجة: عبد الله و عبد الرحمن هاني [KSO]
+          files: ${{ steps.find_iso.outputs.iso_path }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
