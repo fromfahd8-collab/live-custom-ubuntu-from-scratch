@@ -1,4 +1,4 @@
-name: Build KSO-GamerOS PRO 101 - Final Working
+name: Build KSO-GamerOS PRO 101 - Fixed Umount
 
 on:
   workflow_dispatch:
@@ -50,21 +50,21 @@ jobs:
 
           ls -lh batocera.img
 
-      - name: Mount IMG and Add KSO Branding
+      - name: Mount IMG and Add KSO Branding + Games + Config
         run: |
           set -e
           mkdir -p /tmp/work
 
-          # بجيب بداية البارتيشن التاني اللي فيه النظام
           offset=$(fdisk -l batocera.img | grep 'batocera.img2' | awk '{print $2*512}')
           echo "الـ offset: $offset"
 
           mkdir -p /tmp/work/mnt
           sudo mount -o loop,offset=$offset batocera.img /tmp/work/mnt
 
-          # برمجة عبد الله و عبد الرحمن هاني [ kso ]
+          # 1. براندنج برمجة عبد الله و عبد الرحمن هاني [ kso ]
           echo "بحط ثيم [ kso ]..."
           sudo mkdir -p /tmp/work/mnt/usr/share/plymouth/themes/kso
+          sudo mkdir -p /tmp/work/mnt/etc/alternatives
 
           cat << 'EOF' | sudo tee /tmp/work/mnt/usr/share/plymouth/themes/kso/kso.plymouth
           [Plymouth Theme]
@@ -84,17 +84,14 @@ jobs:
           text_sprite.SetPosition(Window.GetWidth()/2 - text.GetWidth()/2, Window.GetHeight()/2);
           EOF
 
-          # ده السطر اللي كان بيضرب - اتصلح
-          sudo mkdir -p /tmp/work/mnt/etc/alternatives
           sudo ln -sf /usr/share/plymouth/themes/kso/kso.plymouth /tmp/work/mnt/etc/alternatives/default.plymouth
-
-          # فولدرات الألعاب
-          sudo mkdir -p /tmp/work/mnt/userdata/roms/psx /tmp/work/mnt/userdata/roms/snes /tmp/work/mnt/userdata/roms/gba
           echo "خلصت البراندنج"
 
-      - name: Download 101 Games - PS1 36 + SNES 35 + GBA 30
-        run: |
+          # 2. تحميل 101 لعبة
           set +e
+          echo "بحمل الألعاب..."
+          sudo mkdir -p /tmp/work/mnt/userdata/roms/psx /tmp/work/mnt/userdata/roms/snes /tmp/work/mnt/userdata/roms/gba
+
           # === PS1 - 36 لعبة ===
           cd /tmp/work/mnt/userdata/roms/psx
           sudo wget -q https://github.com/Lameguy64/psn00bsdk/raw/master/examples/hello/main.cue -O "01-PSN00bSDK-Demo.cue" || true
@@ -204,10 +201,10 @@ jobs:
           sudo wget -q https://github.com/GValiente/butano/raw/master/examples/sensor/sensor.gba -O "28-Sensor.gba" || true
           sudo wget -q https://github.com/GValiente/butano/raw/master/examples/bitmap/bitmap.gba -O "29-Bitmap.gba" || true
           sudo wget -q https://github.com/terasology-lite/gba/releases/download/v0.1/terasology.gba -O "30-Terasology-Lite-GBA.gba" || true
-          echo "خلصت تحميل الألعاب"
 
-      - name: Finalize Config - برمجة عبد الله و عبد الرحمن هاني [ kso ]
-        run: |
+          # 3. Config - ده السطر اللي كان بيضرب - اتصلح
+          echo "بحط الكونفج..."
+          sudo mkdir -p /tmp/work/mnt/userdata/system
           echo 'global.theme=carbon
           system.hostname=KSO-GamerOS-PRO101
           updates.enabled=0
@@ -215,7 +212,10 @@ jobs:
           kso.games=101
           kso.version=PRO-101
           kso.author=برمجة عبد الله و عبد الرحمن هاني [ kso ]
-          global.netplay=0' | sudo tee -a /tmp/work/mnt/userdata/system/batocera.conf
+          global.netplay=0' | sudo tee /tmp/work/mnt/userdata/system/batocera.conf
+
+          # 4. فك الـ Mount في الآخر خالص
+          echo "بفك الـ Mount..."
           sudo umount /tmp/work/mnt
 
       - name: Build ISO
