@@ -44,6 +44,7 @@ jobs:
         scrot
         feh
         sudo
+        plymouth
         plymouth-themes
         xterm
         xdg-utils
@@ -218,7 +219,7 @@ jobs:
         bindsym $mod+q exec kso-shutdown
         bindsym $mod+Shift+e exec kso-shutdown
         bar { status_command echo "KSO-WATCHING | Win+X=OFF" colors { background #000000 border #FF0000 text #FF0000 } }
-        client.focused #FF0000 #000000 #FF0000 #FF0000
+        client.focused #FF0000 #000000 #FF0000
         EOF
         
         mkdir -p config/includes.chroot/etc/sudoers.d
@@ -228,6 +229,7 @@ jobs:
     - name: Fix xorriso UDF Issue + Build
       run: |
         cd abyss
+        mkdir -p config/hooks/normal
         echo 'plymouth-set-default-theme kso-abyss' > config/hooks/normal/0999-kso-theme.chroot
         echo 'echo "kso-abyss" > /etc/hostname' >> config/hooks/normal/0999-kso-theme.chroot
         chmod +x config/hooks/normal/0999-kso-theme.chroot
