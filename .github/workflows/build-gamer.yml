@@ -12,7 +12,7 @@ jobs:
       - name: Install Dependencies
         run: |
           sudo apt-get update -qq
-          sudo apt-get install -y wget p7zip-full grub-efi-amd64-bin mtools squashfs-tools aria2 git fdisk grub-pc-bin xorriso curl
+          sudo apt-get install -y wget p7zip-full grub-efi-amd64-bin mtools squashfs-tools aria2 git fdisk grub-pc-bin xorriso curl psmisc
 
       - name: Download Batocera - Auto Latest File
         run: |
@@ -214,9 +214,15 @@ jobs:
           kso.author=برمجة عبد الله و عبد الرحمن هاني [ kso ]
           global.netplay=0' | sudo tee /tmp/work/mnt/userdata/system/batocera.conf
 
-          # 4. فك الـ Mount في الآخر خالص
+          # 4. فك الـ Mount - متصلح
           echo "بفك الـ Mount..."
-          sudo umount /tmp/work/mnt
+          cd /
+          sync
+          sleep 5
+          sudo fuser -km /tmp/work/mnt 2>/dev/null || true
+          sleep 2
+          sudo umount -l /tmp/work/mnt || sudo umount -f /tmp/work/mnt
+          echo "الماونت اتفك تمام"
 
       - name: Build ISO
         run: |
