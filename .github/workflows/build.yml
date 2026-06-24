@@ -22,10 +22,14 @@ jobs:
           sudo apt update
           sudo apt install -y p7zip-full wimtools aria2 curl cabextract genisoimage
 
-      - name: Download Windows 11 ISO
+      - name: Download Windows 11 ISO - Fido Script
         run: |
-          # لينك ويندوز 11 عربي 23H2 رسمي من مايكروسوفت
-          aria2c -x16 -s16 "https://software.download.prss.microsoft.com/dbazure/Win11_23H2_Arabic_x64.iso" -o win11.iso
+          # ده بيجيب لينك رسمي من مايكروسوفت اوتوماتيك
+          wget https://github.com/pbatard/Fido/raw/master/Fido.ps1
+          sudo apt install -y powershell
+          pwsh -Command "& {./Fido.ps1 -Win 11 -Rel 23H2 -Ed Pro -Lang Arabic -Arch x64 -GetUrl }" > win_url.txt
+          cat win_url.txt
+          aria2c -x16 -s16 -o win11.iso $(cat win_url.txt)
 
       - name: Extract ISO
         run: 7z x win11.iso -oiso_extract
