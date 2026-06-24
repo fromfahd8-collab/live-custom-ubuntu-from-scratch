@@ -2,93 +2,90 @@ name: Build Win1 ISO for KSO
 
 on:
   workflow_dispatch:
-  push:
-    branches: [ main ]
 
 jobs:
   build:
-    runs-on: ubuntu-22.04-4core
-    timeout-minutes: 360
-    
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Free up disk space
+      - name: Free Disk Space
         run: |
-          sudo rm -rf /usr/share/dotnet
-          sudo rm -rf /opt/ghc
-          sudo rm -rf "/usr/local/share/boost"
-          sudo rm -rf "$AGENT_TOOLSDIRECTORY"
+          sudo rm -rf /usr/share/dotnet /opt/ghc "/usr/local/share/boost" "$AGENT_TOOLSDIRECTORY"
           df -h
 
       - name: Install Dependencies
         run: |
-          sudo apt-get update
-          sudo apt-get install -y squashfs-tools genisoimage p7zip-full wget
+          sudo apt update
+          sudo apt install -y p7zip-full wimtools aria2 curl cabextract genisoimage
 
-      - name: Clone Original Ubuntu Builder
+      - name: Download Windows 11 ISO
         run: |
-          git clone https://github.com/mvallim/live-custom-ubuntu-from-scratch.git
-          cp -r live-custom-ubuntu-from-scratch/* .
+          # حط لينك الويندوز هنا - ابعتلي "هات لينك" اجيبهولك
+          aria2c -x16 -s16 "https://software.download.prss.microsoft.com/dbazure/Win11_23H2_Arabic_x64v2.iso?t=YOUR_LINK_HERE" -o win11.iso
 
-      - name: Nuke All Root Checks + Setup KSO Team
-        run: |
-          # شيل فحص الروت
-          find . -type f -exec sed -i 's/\[ "$(id -u)" -eq 0 \]//g' {} +
-          find . -type f -exec sed -i 's/\[ "$(id -u)" -ne 0 \]//g' {} +
-          
-          # عدل الاسم وبيانات المبرمجين
-          sed -i 's/Ubuntu/KSO-Win1/g' config/*
-          echo "KSO-Win1" > etc/hostname
-          
-          # حط أساميكم في ملفات النظام
-          echo "KSO-Win1 1.0 \n \l" > etc/issue
-          echo "برمجة: عبد الله و عبد الرحمن هاني [KSO]" >> etc/issue
-          echo "" >> etc/issue
-          
-          # ملف os-release عشان يظهر في neofetch
-          echo 'NAME="KSO-Win1"' > etc/os-release
-          echo 'VERSION="1.0"' >> etc/os-release
-          echo 'ID=kso' >> etc/os-release
-          echo 'PRETTY_NAME="KSO-Win1 1.0 - برمجة عبد الله و عبد الرحمن هاني"' >> etc/os-release
-          echo 'HOME_URL="https://github.com"' >> etc/os-release
-          
-          # رسالة ترحيب في الترمنال
-          mkdir -p etc/skel
-          echo 'echo "=================================="' >> etc/skel/.bashrc
-          echo 'echo "   مرحباً بك في KSO-Win1 v1.0"' >> etc/skel/.bashrc
-          echo 'echo "   برمجة: عبد الله و عبد الرحمن هاني [KSO]"' >> etc/skel/.bashrc
-          echo 'echo "=================================="' >> etc/skel/.bashrc
-          
-      - name: Build ISO - 4 Cores
-        run: |
-          chmod +x build.sh
-          export JOBS=4
-          sudo -E ./build.sh
+      - name: Extract ISO
+        run: 7z x win11.iso -oiso_extract
 
-      - name: Find ISO File
-        id: find_iso
+      - name: Mount install.wim
         run: |
-          ISO_PATH=$(find . -name "*.iso" | head -1)
-          echo "iso_path=$ISO_PATH" >> $GITHUB_OUTPUT
-          ls -lh $ISO_PATH
+          mkdir wim_mount
+          wimlib-imagex mount iso_extract/sources/install.wim 1 wim_mount
+
+      - name: Mount boot.wim for Boot Screen Edit
+        run: |
+          mkdir boot_mount
+          wimlib-imagex mount iso_extract/sources/boot.wim 2 boot_mount
+
+      - name: Team KSO Branding - البوت + السيستم
+        run: |
+          # === 1. تعديل شاشة البوت ===
+          # ده اللي بيظهر والويندوز بيقوم
+          sed -i 's/Microsoft Corporation/Team KSO - Abdullah & Abdelrahman Hany/g' boot_mount/Windows/Boot/Resources/en-US/bootres.dll.mui
+          sed -i 's/Microsoft Corporation/Team KSO - عبد الله و عبد الرحمن هاني/g' boot_mount/Windows/Boot/Resources/ar-SA/bootres.dll.mui
+
+          # === 2. تعديل install.wim زي ما هو ===
+          # شيل البرامج التقيلة
+          rm -rf wim_mount/Windows/SystemApps/Microsoft.MicrosoftEdge_8wekyb3d8bbwe
+          rm -rf wim_mount/Windows/SystemApps/Microsoft.Windows.Cortana_cw5n1h2txyewy
+
+          # غير اسم النسخة في النظام
+          sed -i 's/Microsoft Windows/Team KSO Windows/g' wim_mount/Windows/System32/en-US/winbrand.dll.mui
+          sed -i 's/Microsoft Windows/Team KSO Windows/g' wim_mount/Windows/System32/ar-SA/winbrand.dll.mui
+
+          # معلومات KSO في System Info
+          mkdir -p wim_mount/Windows/System32/oobe/info
+          cat > wim_mount/Windows/System32/oobe/info/oeminfo.ini << 'EOF'
+          [General]
+          Manufacturer=Team KSO
+          Model=KSO Win1 Edition
+          SubModel=برمجة عبد الله و عبد الرحمن هاني
+          SupportURL=https://github.com/fromfahd8
+          EOF
+
+          # ملف نصي على سطح المكتب
+          mkdir -p wim_mount/Users/Default/Desktop
+          echo "Team KSO Edition" > wim_mount/Users/Default/Desktop/KSO.txt
+          echo "برمجة: عبد الله و عبد الرحمن هاني [ KSO ]" >> wim_mount/Users/Default/Desktop/KSO.txt
+
+      - name: Commit Changes
+        run: |
+          wimlib-imagex unmount boot_mount --commit
+          wimlib-imagex unmount wim_mount --commit
+
+      - name: Rebuild ISO
+        run: |
+          genisoimage -iso-level 4 -udf -r -D -N -joliet -relaxed-filenames \
+          -b boot/etfsboot.com -no-emul-boot -boot-load-size 8 -hide boot.catalog \
+          -eltorito-alt-boot -no-emul-boot -b efi/microsoft/boot/efisys.bin \
+          -o kso-win1.iso iso_extract
 
       - name: Upload ISO
         uses: actions/upload-artifact@v4
         with:
-          name: kso-win1-iso
-          path: ${{ steps.find_iso.outputs.iso_path }}
-          
-      - name: Create Release
-        uses: softprops/action-gh-release@v1
-        if: success()
-        with:
-          tag_name: v1.0-${{ github.run_number }}
-          name: KSO-Win1 v1.0 - Team KSO
-          body: |
-            نظام KSO-Win1 خفيف وسريع
-            برمجة: عبد الله و عبد الرحمن هاني [KSO]
-          files: ${{ steps.find_iso.outputs.iso_path }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          name: kso-win1-Abdullah-Abdelrahman
+          path: kso-win1.iso
+          retention-days: 5
