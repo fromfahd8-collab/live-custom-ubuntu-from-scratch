@@ -1,4 +1,4 @@
-name: Build KSO-GamerOS PRO 101 - Auto Latest
+name: Build KSO-GamerOS PRO 101 - Final Fixed
 
 on:
   workflow_dispatch:
@@ -19,7 +19,6 @@ jobs:
           set -e
           echo "بجيب آخر إصدار من الميرور الرسمي..."
 
-          # 1. هات قائمة الملفات من السيرفر وخد آخر واحد.img.gz
           BASE_URL="https://mirrors.o2switch.fr/batocera/x86_64/stable/last/"
           LATEST_FILE=$(curl -s $BASE_URL | grep -o 'href="batocera-x86_64-[^"]*\.img\.gz"' | head -1 | cut -d'"' -f2)
 
@@ -31,7 +30,6 @@ jobs:
           FULL_URL="${BASE_URL}${LATEST_FILE}"
           echo "اللينك: $FULL_URL"
 
-          # 2. حمل الملف
           curl -L --retry 10 --retry-delay 5 -o batocera.img.gz "$FULL_URL"
 
           FILE_SIZE=$(stat -c%s "batocera.img.gz")
@@ -45,7 +43,12 @@ jobs:
 
           echo "بفك الضغط..."
           gunzip batocera.img.gz
-          mv *.img batocera.img
+
+          # السطر المتصلح عشان ميضربش Error
+          if [ -f batocera-x86_64.img ]; then
+            mv batocera-x86_64.img batocera.img
+          fi
+
           ls -lh batocera.img
 
       - name: Mount IMG and Add KSO Branding
