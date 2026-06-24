@@ -1,4 +1,4 @@
-name: Build KSO-GamerOS PRO 101 - 101 Games Final
+name: Build KSO-GamerOS PRO 101 - Auto Latest
 
 on:
   workflow_dispatch:
@@ -14,26 +14,38 @@ jobs:
           sudo apt-get update -qq
           sudo apt-get install -y wget p7zip-full grub-efi-amd64-bin mtools squashfs-tools aria2 git fdisk grub-pc-bin xorriso curl
 
-      - name: Download Batocera - Official Mirror o2switch
+      - name: Download Batocera - Auto Latest File
         run: |
           set -e
-          echo "بحمل من الميرور الرسمي o2switch..."
+          echo "بجيب آخر إصدار من الميرور الرسمي..."
 
-          # ده اللينك الرسمي الحالي لـ x86_64 - شغال بتاريخ 2026-06-24
-          curl -L --retry 10 --retry-delay 5 -o batocera.img.gz "https://mirrors.o2switch.fr/batocera/x86_64/stable/last/batocera-x86_64.img.gz"
+          # 1. هات قائمة الملفات من السيرفر وخد آخر واحد.img.gz
+          BASE_URL="https://mirrors.o2switch.fr/batocera/x86_64/stable/last/"
+          LATEST_FILE=$(curl -s $BASE_URL | grep -o 'href="batocera-x86_64-[^"]*\.img\.gz"' | head -1 | cut -d'"' -f2)
+
+          if [ -z "$LATEST_FILE" ]; then
+            echo "ملقتش ملف، بجرب اسم افتراضي"
+            LATEST_FILE="batocera-x86_64.img.gz"
+          fi
+
+          FULL_URL="${BASE_URL}${LATEST_FILE}"
+          echo "اللينك: $FULL_URL"
+
+          # 2. حمل الملف
+          curl -L --retry 10 --retry-delay 5 -o batocera.img.gz "$FULL_URL"
 
           FILE_SIZE=$(stat -c%s "batocera.img.gz")
           echo "حجم الملف: $FILE_SIZE بايت"
 
           if [ "$FILE_SIZE" -lt 500000000 ]; then
-            echo "Error: الملف بايظ - حجمه صغير"
+            echo "Error: الملف بايظ"
             head -c 500 batocera.img.gz
             exit 1
           fi
 
           echo "بفك الضغط..."
           gunzip batocera.img.gz
-          mv batocera-x86_64.img batocera.img
+          mv *.img batocera.img
           ls -lh batocera.img
 
       - name: Mount IMG and Add KSO Branding
