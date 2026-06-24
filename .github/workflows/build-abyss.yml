@@ -18,7 +18,7 @@ jobs:
     - name: Setup Build Directory
       run: |
         mkdir -p abyss && cd abyss
-        lb config \
+        sudo lb config \
           --architecture amd64 \
           --distribution bookworm \
           --archive-areas "main contrib non-free non-free-firmware" \
@@ -235,8 +235,8 @@ jobs:
         echo 'echo "kso-abyss" > /etc/hostname' >> config/hooks/normal/0999-kso-theme.chroot
         chmod +x config/hooks/normal/0999-kso-theme.chroot
         
-        lb build
-        mv live-image-amd64.hybrid.iso ../KSO-AbyssOS.iso
+        sudo lb build
+        sudo mv live-image-amd64.hybrid.iso ../KSO-AbyssOS.iso
 
     - name: Upload ISO
       uses: actions/upload-artifact@v4
