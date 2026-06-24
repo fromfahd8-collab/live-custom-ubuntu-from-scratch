@@ -1,4 +1,4 @@
-name: Build KSO-GamerOS PRO 101 - Final Fixed
+name: Build KSO-GamerOS PRO 101 - Final Working
 
 on:
   workflow_dispatch:
@@ -44,7 +44,6 @@ jobs:
           echo "بفك الضغط..."
           gunzip batocera.img.gz
 
-          # السطر المتصلح عشان ميضربش Error
           if [ -f batocera-x86_64.img ]; then
             mv batocera-x86_64.img batocera.img
           fi
@@ -53,31 +52,49 @@ jobs:
 
       - name: Mount IMG and Add KSO Branding
         run: |
+          set -e
           mkdir -p /tmp/work
-          offset=$(fdisk -l batocera.img | grep batocera.img2 | awk '{print $2*512}')
+
+          # بجيب بداية البارتيشن التاني اللي فيه النظام
+          offset=$(fdisk -l batocera.img | grep 'batocera.img2' | awk '{print $2*512}')
+          echo "الـ offset: $offset"
+
           mkdir -p /tmp/work/mnt
           sudo mount -o loop,offset=$offset batocera.img /tmp/work/mnt
 
           # برمجة عبد الله و عبد الرحمن هاني [ kso ]
+          echo "بحط ثيم [ kso ]..."
           sudo mkdir -p /tmp/work/mnt/usr/share/plymouth/themes/kso
-          echo '[Plymouth Theme]
+
+          cat << 'EOF' | sudo tee /tmp/work/mnt/usr/share/plymouth/themes/kso/kso.plymouth
+          [Plymouth Theme]
           Name=KSO-GamerOS-PRO-101
           Description=برمجة عبد الله و عبد الرحمن هاني [ kso ]
           ModuleName=script
-          [script]
-          ScriptFile=/usr/share/plymouth/themes/kso/kso.script' | sudo tee /tmp/work/mnt/usr/share/plymouth/themes/kso/kso.plymouth
 
-          echo 'Window.SetBackgroundTopColor(0,0,0);
+          [script]
+          ScriptFile=/usr/share/plymouth/themes/kso/kso.script
+          EOF
+
+          cat << 'EOF' | sudo tee /tmp/work/mnt/usr/share/plymouth/themes/kso/kso.script
+          Window.SetBackgroundTopColor(0,0,0);
           Window.SetBackgroundBottomColor(0,0,0);
           text = Image.Text("برمجة عبد الله و عبد الرحمن هاني [ kso ] - 101 لعبة", 1, 1, 1);
           text_sprite = Sprite(text);
-          text_sprite.SetPosition(Window.GetWidth()/2 - text.GetWidth()/2, Window.GetHeight()/2);' | sudo tee /tmp/work/mnt/usr/share/plymouth/themes/kso/kso.script
+          text_sprite.SetPosition(Window.GetWidth()/2 - text.GetWidth()/2, Window.GetHeight()/2);
+          EOF
 
+          # ده السطر اللي كان بيضرب - اتصلح
+          sudo mkdir -p /tmp/work/mnt/etc/alternatives
           sudo ln -sf /usr/share/plymouth/themes/kso/kso.plymouth /tmp/work/mnt/etc/alternatives/default.plymouth
+
+          # فولدرات الألعاب
           sudo mkdir -p /tmp/work/mnt/userdata/roms/psx /tmp/work/mnt/userdata/roms/snes /tmp/work/mnt/userdata/roms/gba
+          echo "خلصت البراندنج"
 
       - name: Download 101 Games - PS1 36 + SNES 35 + GBA 30
         run: |
+          set +e
           # === PS1 - 36 لعبة ===
           cd /tmp/work/mnt/userdata/roms/psx
           sudo wget -q https://github.com/Lameguy64/psn00bsdk/raw/master/examples/hello/main.cue -O "01-PSN00bSDK-Demo.cue" || true
@@ -187,6 +204,7 @@ jobs:
           sudo wget -q https://github.com/GValiente/butano/raw/master/examples/sensor/sensor.gba -O "28-Sensor.gba" || true
           sudo wget -q https://github.com/GValiente/butano/raw/master/examples/bitmap/bitmap.gba -O "29-Bitmap.gba" || true
           sudo wget -q https://github.com/terasology-lite/gba/releases/download/v0.1/terasology.gba -O "30-Terasology-Lite-GBA.gba" || true
+          echo "خلصت تحميل الألعاب"
 
       - name: Finalize Config - برمجة عبد الله و عبد الرحمن هاني [ kso ]
         run: |
