@@ -1,4 +1,4 @@
-name: Build KSO-GamerOS PRO 101 - Fixed Umount
+name: Build KSO-GamerOS PRO 101 - Fixed
 
 on:
   workflow_dispatch:
@@ -92,44 +92,115 @@ jobs:
           echo "بحمل الألعاب..."
           sudo mkdir -p /tmp/work/mnt/userdata/roms/psx /tmp/work/mnt/userdata/roms/snes /tmp/work/mnt/userdata/roms/gba
 
-          # === PS1 - 36 لعبة ===
+          # === PS1 - 36 لعبة - متصلح بـ.cue +.bin ===
           cd /tmp/work/mnt/userdata/roms/psx
-          sudo wget -q https://github.com/Lameguy64/psn00bsdk/raw/master/examples/hello/main.cue -O "01-PSN00bSDK-Demo.cue" || true
+          sudo wget -q https://github.com/Lameguy64/psn00bsdk/raw/master/examples/hello/hello.cue -O "01-PSN00bSDK-Demo.cue" || true
+          sudo wget -q https://github.com/Lameguy64/psn00bsdk/raw/master/examples/hello/hello.bin -O "01-PSN00bSDK-Demo.bin" || true
+
           sudo wget -q https://github.com/jmthompson/psx-homebrew/raw/main/bin/hello.cue -O "02-HelloWorld.cue" || true
+          sudo wget -q https://github.com/jmthompson/psx-homebrew/raw/main/bin/hello.bin -O "02-HelloWorld.bin" || true
+
           sudo wget -q https://github.com/Chroma91/PSX-Homebrew/raw/main/2048/2048.cue -O "03-2048.cue" || true
+          sudo wget -q https://github.com/Chroma91/PSX-Homebrew/raw/main/2048/2048.bin -O "03-2048.bin" || true
+
           sudo wget -q https://github.com/ABelliqueux/nolibgs_hello_worlds/raw/main/hello_world/hello.cue -O "04-NoLibGS.cue" || true
+          sudo wget -q https://github.com/ABelliqueux/nolibgs_hello_worlds/raw/main/hello_world/hello.bin -O "04-NoLibGS.bin" || true
+
           sudo wget -q https://github.com/Jaames/playstation-vram-tool/releases/download/v1.0/vram-tool.cue -O "05-VRAM-Tool.cue" || true
+          sudo wget -q https://github.com/Jaames/playstation-vram-tool/releases/download/v1.0/vram-tool.bin -O "05-VRAM-Tool.bin" || true
+
           sudo wget -q https://github.com/simias/psx/raw/master/examples/hello/hello.cue -O "06-Simias-Hello.cue" || true
+          sudo wget -q https://github.com/simias/psx/raw/master/examples/hello/hello.bin -O "06-Simias-Hello.bin" || true
+
           sudo wget -q https://github.com/spicyjpeg/psxpadtest/releases/download/v1.0/padtest.cue -O "07-PadTest.cue" || true
+          sudo wget -q https://github.com/spicyjpeg/psxpadtest/releases/download/v1.0/padtest.bin -O "07-PadTest.bin" || true
+
           sudo wget -q https://github.com/Lameguy64/PSn00b-Debugger/releases/download/v1.0/psn00b-debug.cue -O "08-PSNoobDebug.cue" || true
+          sudo wget -q https://github.com/Lameguy64/PSn00b-Debugger/releases/download/v1.0/psn00b-debug.bin -O "08-PSNoobDebug.bin" || true
+
           sudo wget -q https://github.com/mine-test/psx-minetest/releases/download/v0.4/minetest-psx.cue -O "09-Minetest-PSX.cue" || true
+          sudo wget -q https://github.com/mine-test/psx-minetest/releases/download/v0.4/minetest-psx.bin -O "09-Minetest-PSX.bin" || true
+
           sudo wget -q https://github.com/Lameguy64/psn00bsdk/raw/master/examples/tim/tim.cue -O "10-TIM-Viewer.cue" || true
+          sudo wget -q https://github.com/Lameguy64/psn00bsdk/raw/master/examples/tim/tim.bin -O "10-TIM-Viewer.bin" || true
+
           sudo wget -q https://github.com/Lameguy64/psn00bsdk/raw/master/examples/mdec/mdec.cue -O "11-MDEC-Player.cue" || true
+          sudo wget -q https://github.com/Lameguy64/psn00bsdk/raw/master/examples/mdec/mdec.bin -O "11-MDEC-Player.bin" || true
+
           sudo wget -q https://github.com/Lameguy64/psn00bsdk/raw/master/examples/pad/pad.cue -O "12-Pad-Example.cue" || true
+          sudo wget -q https://github.com/Lameguy64/psn00bsdk/raw/master/examples/pad/pad.bin -O "12-Pad-Example.bin" || true
+
           sudo wget -q https://github.com/Lameguy64/psn00bsdk/raw/master/examples/cdrom/cdrom.cue -O "13-CDROM-Example.cue" || true
+          sudo wget -q https://github.com/Lameguy64/psn00bsdk/raw/master/examples/cdrom/cdrom.bin -O "13-CDROM-Example.bin" || true
+
           sudo wget -q https://github.com/Lameguy64/psn00bsdk/raw/master/examples/gpu/gpu.cue -O "14-GPU-Example.cue" || true
+          sudo wget -q https://github.com/Lameguy64/psn00bsdk/raw/master/examples/gpu/gpu.bin -O "14-GPU-Example.bin" || true
+
           sudo wget -q https://github.com/Lameguy64/psn00bsdk/raw/master/examples/spu/spu.cue -O "15-SPU-Example.cue" || true
+          sudo wget -q https://github.com/Lameguy64/psn00bsdk/raw/master/examples/spu/spu.bin -O "15-SPU-Example.bin" || true
+
           sudo wget -q https://github.com/Lameguy64/psn00bsdk/raw/master/examples/serial/serial.cue -O "16-Serial-Example.cue" || true
+          sudo wget -q https://github.com/Lameguy64/psn00bsdk/raw/master/examples/serial/serial.bin -O "16-Serial-Example.bin" || true
+
           sudo wget -q https://github.com/Lameguy64/psn00bsdk/raw/master/examples/tty/tty.cue -O "17-TTY-Example.cue" || true
+          sudo wget -q https://github.com/Lameguy64/psn00bsdk/raw/master/examples/tty/tty.bin -O "17-TTY-Example.bin" || true
+
           sudo wget -q https://github.com/Lameguy64/psn00bsdk/raw/master/examples/memcard/memcard.cue -O "18-MemCard-Example.cue" || true
+          sudo wget -q https://github.com/Lameguy64/psn00bsdk/raw/master/examples/memcard/memcard.bin -O "18-MemCard-Example.bin" || true
+
           sudo wget -q https://github.com/Lameguy64/psn00bsdk/raw/master/examples/mouse/mouse.cue -O "19-Mouse-Example.cue" || true
+          sudo wget -q https://github.com/Lameguy64/psn00bsdk/raw/master/examples/mouse/mouse.bin -O "19-Mouse-Example.bin" || true
+
           sudo wget -q https://github.com/Lameguy64/psn00bsdk/raw/master/examples/multitap/multitap.cue -O "20-Multitap-Example.cue" || true
+          sudo wget -q https://github.com/Lameguy64/psn00bsdk/raw/master/examples/multitap/multitap.bin -O "20-Multitap-Example.bin" || true
+
           sudo wget -q https://github.com/Lameguy64/psn00bsdk/raw/master/examples/gte/gte.cue -O "21-GTE-Example.cue" || true
+          sudo wget -q https://github.com/Lameguy64/psn00bsdk/raw/master/examples/gte/gte.bin -O "21-GTE-Example.bin" || true
+
           sudo wget -q https://github.com/Lameguy64/psn00bsdk/raw/master/examples/dma/dma.cue -O "22-DMA-Example.cue" || true
+          sudo wget -q https://github.com/Lameguy64/psn00bsdk/raw/master/examples/dma/dma.bin -O "22-DMA-Example.bin" || true
+
           sudo wget -q https://github.com/Lameguy64/psn00bsdk/raw/master/examples/intr/intr.cue -O "23-Intr-Example.cue" || true
+          sudo wget -q https://github.com/Lameguy64/psn00bsdk/raw/master/examples/intr/intr.bin -O "23-Intr-Example.bin" || true
+
           sudo wget -q https://github.com/Lameguy64/psn00bsdk/raw/master/examples/timer/timer.cue -O "24-Timer-Example.cue" || true
+          sudo wget -q https://github.com/Lameguy64/psn00bsdk/raw/master/examples/timer/timer.bin -O "24-Timer-Example.bin" || true
+
           sudo wget -q https://github.com/Lameguy64/psn00bsdk/raw/master/examples/mdec2/mdec2.cue -O "25-MDEC2-Example.cue" || true
+          sudo wget -q https://github.com/Lameguy64/psn00bsdk/raw/master/examples/mdec2/mdec2.bin -O "25-MDEC2-Example.bin" || true
+
           sudo wget -q https://github.com/Lameguy64/psn00bsdk/raw/master/examples/gte2/gte2.cue -O "26-GTE2-Example.cue" || true
+          sudo wget -q https://github.com/Lameguy64/psn00bsdk/raw/master/examples/gte2/gte2.bin -O "26-GTE2-Example.bin" || true
+
           sudo wget -q https://github.com/Lameguy64/psn00bsdk/raw/master/examples/spu2/spu2.cue -O "27-SPU2-Example.cue" || true
+          sudo wget -q https://github.com/Lameguy64/psn00bsdk/raw/master/examples/spu2/spu2.bin -O "27-SPU2-Example.bin" || true
+
           sudo wget -q https://github.com/Lameguy64/psn00bsdk/raw/master/examples/gpu2/gpu2.cue -O "28-GPU2-Example.cue" || true
+          sudo wget -q https://github.com/Lameguy64/psn00bsdk/raw/master/examples/gpu2/gpu2.bin -O "28-GPU2-Example.bin" || true
+
           sudo wget -q https://github.com/Lameguy64/psn00bsdk/raw/master/examples/cdrom2/cdrom2.cue -O "29-CDROM2-Example.cue" || true
+          sudo wget -q https://github.com/Lameguy64/psn00bsdk/raw/master/examples/cdrom2.bin -O "29-CDROM2-Example.bin" || true
+
           sudo wget -q https://github.com/Lameguy64/psn00bsdk/raw/master/examples/pad2/pad2.cue -O "30-Pad2-Example.cue" || true
+          sudo wget -q https://github.com/Lameguy64/psn00bsdk/raw/master/examples/pad2/pad2.bin -O "30-Pad2-Example.bin" || true
+
           sudo wget -q https://github.com/Lameguy64/psn00bsdk/raw/master/examples/memcard2/memcard2.cue -O "31-MemCard2-Example.cue" || true
+          sudo wget -q https://github.com/Lameguy64/psn00bsdk/raw/master/examples/memcard2/memcard2.bin -O "31-MemCard2-Example.bin" || true
+
           sudo wget -q https://github.com/Lameguy64/psn00bsdk/raw/master/examples/serial2/serial2.cue -O "32-Serial2-Example.cue" || true
+          sudo wget -q https://github.com/Lameguy64/psn00bsdk/raw/master/examples/serial2/serial2.bin -O "32-Serial2-Example.bin" || true
+
           sudo wget -q https://github.com/Lameguy64/psn00bsdk/raw/master/examples/tty2/tty2.cue -O "33-TTY2-Example.cue" || true
+          sudo wget -q https://github.com/Lameguy64/psn00bsdk/raw/master/examples/tty2/tty2.bin -O "33-TTY2-Example.bin" || true
+
           sudo wget -q https://github.com/Lameguy64/psn00bsdk/raw/master/examples/mouse2/mouse2.cue -O "34-Mouse2-Example.cue" || true
+          sudo wget -q https://github.com/Lameguy64/psn00bsdk/raw/master/examples/mouse2/mouse2.bin -O "34-Mouse2-Example.bin" || true
+
           sudo wget -q https://github.com/Lameguy64/psn00bsdk/raw/master/examples/multitap2/multitap2.cue -O "35-Multitap2-Example.cue" || true
+          sudo wget -q https://github.com/Lameguy64/psn00bsdk/raw/master/examples/multitap2/multitap2.bin -O "35-Multitap2-Example.bin" || true
+
           sudo wget -q https://github.com/Lameguy64/psn00bsdk/raw/master/examples/gte3/gte3.cue -O "36-GTE3-Example.cue" || true
+          sudo wget -q https://github.com/Lameguy64/psn00bsdk/raw/master/examples/gte3/gte3.bin -O "36-GTE3-Example.bin" || true
 
           # === SNES - 35 لعبة ===
           cd /tmp/work/mnt/userdata/roms/snes
@@ -202,7 +273,7 @@ jobs:
           sudo wget -q https://github.com/GValiente/butano/raw/master/examples/bitmap/bitmap.gba -O "29-Bitmap.gba" || true
           sudo wget -q https://github.com/terasology-lite/gba/releases/download/v0.1/terasology.gba -O "30-Terasology-Lite-GBA.gba" || true
 
-          # 3. Config - ده السطر اللي كان بيضرب - اتصلح
+          # 3. Config
           echo "بحط الكونفج..."
           sudo mkdir -p /tmp/work/mnt/userdata/system
           echo 'global.theme=carbon
@@ -234,11 +305,11 @@ jobs:
           menuentry "KSO-GamerOS-PRO-101 [ kso ]" {
             linux /batocera.img
           }' | sudo tee iso/EFI/BOOT/grub.cfg
-          xorriso -as mkisofs -o KSO-GamerOS-PRO-101-3GB-UEFI.iso -isohybrid-gpt-basdat -eltorito-alt-boot -e EFI/BOOT/BOOTX64.EFI -no-emul-boot -V "KSO_PRO_101" iso/
+          xorriso -as mkisofs -o KSO-GamerOS-PRO-101-3GB-UEFI.iso -iso-level 3 -udf -isohybrid-gpt-basdat -eltorito-alt-boot -e EFI/BOOT/BOOTX64.EFI -no-emul-boot -V "KSO_PRO_101" iso/
 
       - name: Upload ISO
         uses: actions/upload-artifact@v4
         with:
           name: KSO-GamerOS-PRO-101-ISO
           path: KSO-GamerOS-PRO-101-3GB-UEFI.iso
-          retention-days: 7
+          retention-days: 7   
