@@ -1,4 +1,4 @@
-name: Build KSO-GamerOS PRO 101 - Auto Latest
+name: Build KSO-GamerOS PRO 101 - SourceForge
 
 on:
   workflow_dispatch:
@@ -12,31 +12,25 @@ jobs:
       - name: Install Dependencies
         run: |
           sudo apt-get update -qq
-          sudo apt-get install -y wget p7zip-full grub-efi-amd64-bin mtools squashfs-tools aria2 git fdisk grub-pc-bin xorriso curl jq
+          sudo apt-get install -y wget p7zip-full grub-efi-amd64-bin mtools squashfs-tools aria2 git fdisk grub-pc-bin xorriso curl
 
-      - name: Download Latest Batocera - Auto Detect
+      - name: Download Batocera 40 - SourceForge Mirror
         run: |
           set -e
-          echo "بجيب لينك آخر إصدار من Batocera..."
+          echo "بحمل من SourceForge - ده السيرفر الرسمي"
 
-          # هات لينك آخر img.gz من GitHub API
-          LATEST_URL=$(curl -s https://api.github.com/repos/batocera-linux/batocera.linux/releases/latest | jq -r '.assets[] | select(.name | endswith("x86_64.img.gz")) |.browser_download_url')
-
-          if [ -z "$LATEST_URL" ]; then
-            echo "ملقتش لينك، بجرب Batocera 40"
-            LATEST_URL="https://github.com/batocera-linux/batocera.linux/releases/download/40-20240404/batocera-x86_64-40-20240404.img.gz"
-          fi
-
-          echo "اللينك اللي لقيناه: $LATEST_URL"
-          curl -L -f --retry 5 -o batocera.img.gz "$LATEST_URL"
+          # SourceForge ميرور رسمي وشغال 24/7
+          aria2c -x 16 -s 16 -o batocera.img.gz "https://sourceforge.net/projects/batocera.linux/files/batocera-x86_64-40-20240404.img.gz/download"
 
           FILE_SIZE=$(stat -c%s "batocera.img.gz")
+          echo "الملف نزل حجمه: $FILE_SIZE بايت"
+
           if [ "$FILE_SIZE" -lt 500000000 ]; then
-            echo "Error: الملف نزل غلط حجمه $FILE_SIZE بايت بس"
+            echo "Error: الملف نزل غلط"
             exit 1
           fi
 
-          echo "الملف تمام حجمه $FILE_SIZE بايت، بفك الضغط..."
+          echo "بفك الضغط..."
           gunzip batocera.img.gz
           mv *.img batocera.img
           ls -lh batocera.img
@@ -66,9 +60,9 @@ jobs:
           sudo ln -sf /usr/share/plymouth/themes/kso/kso.plymouth /tmp/work/mnt/etc/alternatives/default.plymouth
           sudo mkdir -p /tmp/work/mnt/userdata/roms/psx /tmp/work/mnt/userdata/roms/snes /tmp/work/mnt/userdata/roms/gba
 
-      - name: Download 101 Games - PS1 36 + SNES 35 + GBA 30
+      - name: Download 101 Games
         run: |
-          # === PS1 - 36 لعبة ===
+          # PS1 - 36 لعبة
           cd /tmp/work/mnt/userdata/roms/psx
           sudo wget -q https://github.com/Lameguy64/psn00bsdk/raw/master/examples/hello/main.cue -O "01-PSN00bSDK-Demo.cue" || true
           sudo wget -q https://github.com/jmthompson/psx-homebrew/raw/main/bin/hello.cue -O "02-HelloWorld.cue" || true
@@ -107,7 +101,7 @@ jobs:
           sudo wget -q https://github.com/Lameguy64/psn00bsdk/raw/master/examples/multitap2/multitap2.cue -O "35-Multitap2-Example.cue" || true
           sudo wget -q https://github.com/Lameguy64/psn00bsdk/raw/master/examples/gte3/gte3.cue -O "36-GTE3-Example.cue" || true
 
-          # === SNES - 35 لعبة ===
+          # SNES - 35 لعبة
           cd /tmp/work/mnt/userdata/roms/snes
           sudo wget -q https://github.com/mupfelofen-de/snes-template/releases/download/v1.0/template.sfc -O "01-SNES-Template.sfc" || true
           sudo wget -q https://github.com/nesdoug/SNES_Assembly_Adventure/releases/download/v1.0/hello.sfc -O "02-ASM-Hello.sfc" || true
@@ -145,7 +139,7 @@ jobs:
           sudo wget -q https://github.com/pinobatch/snes-test-roms/raw/main/build/cx4.sfc -O "34-CX4-Test.sfc" || true
           sudo wget -q https://github.com/pinobatch/snes-test-roms/raw/main/build/st010.sfc -O "35-ST010-Test.sfc" || true
 
-          # === GBA - 30 لعبة ===
+          # GBA - 30 لعبة
           cd /tmp/work/mnt/userdata/roms/gba
           sudo wget -q https://github.com/AntonioND/gba-link-connection/releases/download/v1.0/link-connection.gba -O "01-Link-Connection.gba" || true
           sudo wget -q https://github.com/rodri042/gba-remote-play/releases/download/v1.0/remote-play.gba -O "02-Remote-Play.gba" || true
@@ -159,7 +153,7 @@ jobs:
           sudo wget -q https://github.com/corax89/gba_types/raw/master/test.gba -O "10-GBA-Types.gba" || true
           sudo wget -q https://github.com/felixjones/gba-toolchain/raw/master/hello.gba -O "11-Toolchain-Hello.gba" || true
           sudo wget -q https://github.com/devkitPro/gba-examples/raw/master/template.gba -O "12-DevkitPro-Template.gba" || true
-          sudo wget -q https://github.com/GValiente/butano/raw/master/examples/affine_bg.gba -O "13-Affine-BG.gba" || true
+          sudo wget -q https://github.com/GValiente/butano/raw/master/examples/affine_bg/affine_bg.gba -O "13-Affine-BG.gba" || true
           sudo wget -q https://github.com/GValiente/butano/raw/master/examples/regular_bg/regular_bg.gba -O "14-Regular-BG.gba" || true
           sudo wget -q https://github.com/GValiente/butano/raw/master/examples/sprite/sprite.gba -O "15-Sprite.gba" || true
           sudo wget -q https://github.com/GValiente/butano/raw/master/examples/text/text.gba -O "16-Text.gba" || true
