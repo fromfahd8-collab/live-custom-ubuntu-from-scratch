@@ -51,6 +51,7 @@ jobs:
         libgl1
         libglu1-mesa
         libsdl2-2.0-0
+        libasound2
         EOF
 
     - name: Create Horror Boot Theme
@@ -226,16 +227,13 @@ jobs:
         echo 'live ALL=(ALL) NOPASSWD: /usr/bin/systemctl poweroff, /usr/bin/kso-shutdown, /usr/bin/kso-quickoff' > config/includes.chroot/etc/sudoers.d/kso-nopasswd
         chmod 0440 config/includes.chroot/etc/sudoers.d/kso-nopasswd
 
-    - name: Fix xorriso UDF Issue + Build
+    - name: Build ISO
       run: |
         cd abyss
         mkdir -p config/hooks/normal
         echo 'plymouth-set-default-theme kso-abyss' > config/hooks/normal/0999-kso-theme.chroot
         echo 'echo "kso-abyss" > /etc/hostname' >> config/hooks/normal/0999-kso-theme.chroot
         chmod +x config/hooks/normal/0999-kso-theme.chroot
-        
-        # Fix الـ -udf error زي النسخة اللي فاتت
-        sed -i 's/--udf//g' /usr/share/live-build/scripts/build/binary_iso
         
         lb build
         mv live-image-amd64.hybrid.iso ../KSO-AbyssOS.iso
