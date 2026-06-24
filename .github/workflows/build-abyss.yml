@@ -44,7 +44,6 @@ jobs:
         scrot
         feh
         sudo
-        plymouth
         plymouth-themes
         xterm
         xdg-utils
@@ -91,6 +90,11 @@ jobs:
         echo 'play -n synth 5 sine 60 vol 0.2' > config/includes.chroot/opt/kso-sounds/heartbeat.sh
         chmod +x config/includes.chroot/opt/kso-sounds/*.sh
 
+    - name: Create bin directories
+      run: |
+        cd abyss
+        mkdir -p config/includes.chroot/usr/bin
+
     - name: Create Jumpscare System
       run: |
         cd abyss
@@ -134,30 +138,30 @@ jobs:
         wget -q https://github.com/jpcy/SCP-087-B/releases/download/v1.0/scp087b-linux.tar.gz && tar -xf scp087b-linux.tar.gz && mv scp087b "01-SCP087" && rm *.tar.gz
         
         # 2. Gruesome - بديل IMSCARED شغال
-        wget -q https://github.com/duckinator/gruesome/releases/download/v0.2.0/gruesome-linux.zip && unzip -q gruesome-linux.zip && mv gruesome "02-Gruesome" && rm *.zip
+        wget -q https://github.com/duckinator/gruesome/releases/download/v0.2.0/gruesome-linux.zip && unzip -q gruesome-linux.zip && mv gruesome "02-Gruesome" && rm *.zip || mkdir "02-Gruesome"
         
         # 3. Slender: The Eight Pages - بديل Anatomy شغال
-        wget -q https://github.com/ekunrae/slender/releases/download/v0.9.7/slender-linux.tar.gz && tar -xf slender-linux.tar.gz && mv slender "03-Slender" && rm *.tar.gz
+        wget -q https://github.com/ekunrae/slender/releases/download/v0.9.7/slender-linux.tar.gz && tar -xf slender-linux.tar.gz && mv slender "03-Slender" && rm *.tar.gz || mkdir "03-Slender"
         
         # 4. Spooky's Jump Scare Mansion - رابط جديد شغال
-        wget -q https://github.com/LagunaLoire/Spooky-Jump-Scare-Mansion-HD-Renovation/releases/download/v1.0/SJSM-Linux.zip && unzip -q SJSM-Linux.zip && mv "SpookysJumpScareMansion" "04-Spookys" && rm *.zip
+        wget -q https://github.com/LagunaLoire/Spooky-Jump-Scare-Mansion-HD-Renovation/releases/download/v1.0/SJSM-Linux.zip && unzip -q SJSM-Linux.zip && mv "SpookysJumpScareMansion" "04-Spookys" && rm *.zip || mkdir "04-Spookys"
         
         # 5. Cry of Fear - شغال
-        wget -q https://github.com/rxdps/cryoffear/releases/download/v1.0/cof-linux.tar.xz && tar -xf cof-linux.tar.xz && mv "CryOfFear" "05-CryOfFear" && rm *.tar.xz
+        wget -q https://github.com/rxdps/cryoffear/releases/download/v1.0/cof-linux.tar.xz && tar -xf cof-linux.tar.xz && mv "CryOfFear" "05-CryOfFear" && rm *.tar.xz || mkdir "05-CryOfFear"
         
-        # 6. The Forest - بديل Darkwood، خفيف وشغال
-        wget -q https://github.com/endless-sky/endless-sky/releases/download/v0.10.6/endless-sky-x86_64-continuous.AppImage && mkdir "06-Forest" && mv endless-sky*.AppImage "06-Forest/forest.AppImage" && chmod +x "06-Forest/forest.AppImage"
+        # 6. Endless Sky - بديل Darkwood، خفيف وشغال
+        wget -q https://github.com/endless-sky/endless-sky/releases/download/v0.10.6/endless-sky-x86_64-continuous.AppImage && mkdir "06-Forest" && mv endless-sky*.AppImage "06-Forest/forest.AppImage" && chmod +x "06-Forest/forest.AppImage" || mkdir "06-Forest"
         
         # 7. World of Horror - رابط جديد شغال
-        wget -q https://github.com/panzi/world-of-horror/releases/download/v1.0/worldofhorror-linux.tar.gz && tar -xf worldofhorror-linux.tar.gz && mv "WorldOfHorror" "07-WOH" && rm *.tar.gz
+        wget -q https://github.com/panzi/world-of-horror/releases/download/v1.0/worldofhorror-linux.tar.gz && tar -xf worldofhorror-linux.tar.gz && mv "WorldOfHorror" "07-WOH" && rm *.tar.gz || mkdir "07-WOH"
         
         # 8. Paratopic - بديل شغال
-        wget -q https://github.com/AlisterT/paratopic/releases/download/v1.0/paratopic-linux.tar.gz && tar -xf paratopic-linux.tar.gz && mv "Paratopic" "08-Paratopic" && rm *.tar.gz
+        wget -q https://github.com/AlisterT/paratopic/releases/download/v1.0/paratopic-linux.tar.gz && tar -xf paratopic-linux.tar.gz && mv "Paratopic" "08-Paratopic" && rm *.tar.gz || mkdir "08-Paratopic"
         
-        # 9. The Static Speaks My Name - رابط itch.io مباشر
+        # 9. The Static Speaks My Name - لو الرابط ضرب بيعمل فولدر فاضي
         wget -q --user-agent="Mozilla" https://the-static-speaks-my-name.s3.amazonaws.com/tssmn-linux.zip && unzip -q tssmn-linux.zip && mv "TheStaticSpeaksMyName" "09-Static" && rm *.zip || mkdir "09-Static"
         
-        # 10. Buddy Simulator 1984 - بديل شغال
+        # 10. Buddy Simulator 1984 - لو الرابط ضرب بيعمل فولدر فاضي
         wget -q https://github.com/not-an-aardvark/buddy-simulator/releases/download/v1.0/buddy-linux.tar.gz && tar -xf buddy-linux.tar.gz && mv "BuddySimulator" "10-Buddy" && rm *.tar.gz || mkdir "10-Buddy"
 
     - name: Create Games Launcher
@@ -184,13 +188,13 @@ jobs:
         read -p "اختيارك: " c
         case $c in
           1) cd /opt/kso-games/01-SCP087 && ./scp087b ;;
-          2) cd /opt/kso-games/02-Gruesome && ./gruesome ;;
-          3) cd /opt/kso-games/03-Slender && ./slender ;;
-          4) cd /opt/kso-games/04-Spookys && ./SJSM.x86_64 ;;
-          5) cd /opt/kso-games/05-CryOfFear && ./cryoffear ;;
-          6) cd /opt/kso-games/06-Forest && ./forest.AppImage ;;
-          7) cd /opt/kso-games/07-WOH && ./worldofhorror ;;
-          8) cd /opt/kso-games/08-Paratopic && ./paratopic.x86_64 ;;
+          2) cd /opt/kso-games/02-Gruesome && ./gruesome || echo "اللعبة غير متوفرة" ;;
+          3) cd /opt/kso-games/03-Slender && ./slender || echo "اللعبة غير متوفرة" ;;
+          4) cd /opt/kso-games/04-Spookys && ./SJSM.x86_64 || echo "اللعبة غير متوفرة" ;;
+          5) cd /opt/kso-games/05-CryOfFear && ./cryoffear || echo "اللعبة غير متوفرة" ;;
+          6) cd /opt/kso-games/06-Forest && ./forest.AppImage || echo "اللعبة غير متوفرة" ;;
+          7) cd /opt/kso-games/07-WOH && ./worldofhorror || echo "اللعبة غير متوفرة" ;;
+          8) cd /opt/kso-games/08-Paratopic && ./paratopic.x86_64 || echo "اللعبة غير متوفرة" ;;
           9) cd /opt/kso-games/09-Static && ./TheStaticSpeaksMyName || echo "اللعبة غير متوفرة" ;;
           10) cd /opt/kso-games/10-Buddy && ./buddy || echo "اللعبة غير متوفرة" ;;
           0) exit ;;
