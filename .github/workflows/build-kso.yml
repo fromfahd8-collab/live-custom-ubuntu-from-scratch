@@ -16,53 +16,43 @@ jobs:
     - name: Install Dependencies
       run: |
         sudo apt-get update -qq
-        sudo apt-get install -y wget p7zip-full grub-efi-amd64-bin mtools imagemagick squashfs-tools aria2 git fdisk retroarch libretro-* feh polybar rofi fonts-noto-color-emoji curl jq -qq
+        sudo apt-get install -y wget p7zip-full grub-efi-amd64-bin mtools imagemagick squashfs-tools aria2 git fdisk retroarch libretro-* feh polybar rofi fonts-noto-color-emoji curl jq yamllint -qq
 
-    - name: Smart Download Batocera 40
+    - name: Smart Download Batocera from GitHub
       run: |
         set -e
-        echo "بدور على أي نسخة Batocera موجودة وشغالة..."
+        echo "بجيب آخر نسخة Batocera من GitHub مباشر..."
         
-        # هنفحص كل الفولدرات دي بالترتيب
-        DIRS=(
-          "https://updates.batocera.org/x86_64/stable/40/"
-          "https://updates.batocera.org/x86_64/stable/"
-          "https://archive.batocera.org/x86_64/stable/40/"
-          "https://mirrors.dotsrc.org/batocera/x86_64/stable/40/"
-          "https://batocera.org/upgrades/x86_64/stable/40/"
-        )
+        # 1- هات آخر Release من GitHub API
+        LATEST_JSON=$(curl -s -L https://api.github.com/repos/batocera-linux/batocera.linux/releases/latest)
         
-        BATOCERA_URL=""
+        # 2- دور على لينك x86_64 و v40 الأول
+        BATOCERA_URL=$(echo "$LATEST_JSON" | jq -r '.assets[] | select(.name | contains("x86_64") and contains("40") and contains("img.gz")) | .browser_download_url' | head -1)
         
-        for DIR in "${DIRS[@]}"; do
-          echo "بفحص الفولدر: $DIR"
-          # هات كل ملفات img.gz الموجودة فعلاً ورتبها وخد الأحدث
-          FILES=$(curl -s -L --max-time 15 "$DIR" | grep -o 'href="batocera-x86_64-[0-9]*-[0-9]*\.img\.gz"' | cut -d'"' -f2 | sort -V | tac)
-          
-          for FILE in $FILES; do
-            FULL_URL="${DIR}${FILE}"
-            echo "بجرب: $FULL_URL"
-            # لازم 200 OK مش 404 ولا 503
-            HTTP_CODE=$(curl -s -L -o /dev/null -w "%{http_code}" --max-time 15 "$FULL_URL")
-            if [ "$HTTP_CODE" = "200" ]; then
-              BATOCERA_URL="$FULL_URL"
-              echo "✅ لقيت ملف شغال: $FULL_URL"
-              break 2
-            else
-              echo "❌ HTTP $HTTP_CODE - بتخطى"
-            fi
-          done
-        done
+        # 3- لو ملقاش v40، هات أي x86_64 في latest
+        if [ -z "$BATOCERA_URL" ] || [ "$BATOCERA_URL" = "null" ]; then
+          echo "v40 مش في latest، بدور على أي x86_64..."
+          BATOCERA_URL=$(echo "$LATEST_JSON" | jq -r '.assets[] | select(.name | contains("x86_64") and contains("img.gz") and (contains("beta") | not)) | .browser_download_url' | head -1)
+        fi
         
-        if [ -z "$BATOCERA_URL" ]; then
-          echo "فشل: كل السيرفرات واقعة أو مفيش ملفات"
+        # 4- لو لسه مفيش، دور في كل الـ releases على v40
+        if [ -z "$BATOCERA_URL" ] || [ "$BATOCERA_URL" = "null" ]; then
+          echo "بدور في كل الـ releases على v40..."
+          V40_JSON=$(curl -s -L "https://api.github.com/repos/batocera-linux/batocera.linux/releases?per_page=100")
+          BATOCERA_URL=$(echo "$V40_JSON" | jq -r '.[] | select(.tag_name | contains("40")) | .assets[] | select(.name | contains("x86_64") and contains("img.gz")) | .browser_download_url' | head -1)
+        fi
+        
+        if [ -z "$BATOCERA_URL" ] || [ "$BATOCERA_URL" = "null" ]; then
+          echo "فشل: مش لاقي أي نسخة x86_64 على GitHub"
           exit 1
         fi
         
+        echo "✅ لقيت ملف شغال: $BATOCERA_URL"
+        
         echo "بحمل من: $BATOCERA_URL"
-        aria2c -x 16 -s 16 -k 1M --file-allocation=none --check-certificate=false --max-tries=5 --retry-wait=3 -o batocera.img.gz "$BATOCERA_URL" || {
+        aria2c -x 16 -s 16 -k 1M --file-allocation=none --check-certificate=false --max-tries=5 -o batocera.img.gz "$BATOCERA_URL" || {
           echo "aria2c فشل، بجرب wget..."
-          wget -L --no-check-certificate --tries=5 --waitretry=3 --progress=dot:giga -O batocera.img.gz "$BATOCERA_URL" || exit 1
+          wget -L --no-check-certificate --tries=5 --progress=dot:giga -O batocera.img.gz "$BATOCERA_URL" || exit 1
         }
         
         echo "بفك الضغط..."
