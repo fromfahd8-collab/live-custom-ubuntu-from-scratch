@@ -28,7 +28,6 @@ jobs:
         
         if [ -z "$BATOCERA_URL" ] || [ "$BATOCERA_URL" = "null" ]; then
           echo "GitHub فاضي، بجرب السيرفرات الرسمية..."
-          # fallback للسيرفرات لو GitHub مفيهوش
           DIRS=(
             "https://updates.batocera.org/x86_64/stable/"
             "https://archive.batocera.org/x86_64/stable/"
