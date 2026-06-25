@@ -21,10 +21,12 @@ jobs:
     - name: Smart Download Batocera 40
       run: |
         set -e
-        echo "بدور على أي نسخة Batocera 40 شغالة دلوقتي..."
+        echo "بدور على أي نسخة Batocera موجودة وشغالة..."
         
-        MIRRORS=(
+        # هنفحص كل الفولدرات دي بالترتيب
+        DIRS=(
           "https://updates.batocera.org/x86_64/stable/40/"
+          "https://updates.batocera.org/x86_64/stable/"
           "https://archive.batocera.org/x86_64/stable/40/"
           "https://mirrors.dotsrc.org/batocera/x86_64/stable/40/"
           "https://batocera.org/upgrades/x86_64/stable/40/"
@@ -32,29 +34,29 @@ jobs:
         
         BATOCERA_URL=""
         
-        for MIRROR in "${MIRRORS[@]}"; do
-          echo "بفحص: $MIRROR"
-          FILE=$(curl -s -L --max-time 15 "$MIRROR" | grep -o 'batocera-x86_64-40-[0-9]*\.img\.gz' | sort -V | tail -1)
+        for DIR in "${DIRS[@]}"; do
+          echo "بفحص الفولدر: $DIR"
+          # هات كل ملفات img.gz الموجودة فعلاً ورتبها وخد الأحدث
+          FILES=$(curl -s -L --max-time 15 "$DIR" | grep -o 'href="batocera-x86_64-[0-9]*-[0-9]*\.img\.gz"' | cut -d'"' -f2 | sort -V | tac)
           
-          if [ ! -z "$FILE" ]; then
-            FULL_URL="${MIRROR}${FILE}"
-            echo "لقيت: $FULL_URL"
+          for FILE in $FILES; do
+            FULL_URL="${DIR}${FILE}"
+            echo "بجرب: $FULL_URL"
+            # لازم 200 OK مش 404 ولا 503
             HTTP_CODE=$(curl -s -L -o /dev/null -w "%{http_code}" --max-time 15 "$FULL_URL")
             if [ "$HTTP_CODE" = "200" ]; then
               BATOCERA_URL="$FULL_URL"
-              echo "✅ اللينك شغال 100% - HTTP $HTTP_CODE"
-              break
+              echo "✅ لقيت ملف شغال: $FULL_URL"
+              break 2
             else
-              echo "❌ السيرفر واقع - HTTP $HTTP_CODE، بجرب اللي بعده"
+              echo "❌ HTTP $HTTP_CODE - بتخطى"
             fi
-          fi
+          done
         done
         
         if [ -z "$BATOCERA_URL" ]; then
-          echo "كل الـ v40 واقع، هجيب آخر stable"
-          LAST_URL="https://updates.batocera.org/x86_64/stable/last/"
-          FILE=$(curl -s -L "$LAST_URL" | grep -o 'batocera-x86_64-[0-9]*-[0-9]*\.img\.gz' | sort -V | tail -1)
-          BATOCERA_URL="${LAST_URL}${FILE}"
+          echo "فشل: كل السيرفرات واقعة أو مفيش ملفات"
+          exit 1
         fi
         
         echo "بحمل من: $BATOCERA_URL"
