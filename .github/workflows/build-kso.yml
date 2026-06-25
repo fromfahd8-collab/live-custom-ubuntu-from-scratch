@@ -70,26 +70,29 @@ jobs:
         echo "=== بفحص بارتيشنز Batocera ==="
         fdisk -l ../batocera.img
         
-        # هندور على أكبر بارتيشن ext4 - ده بتاع BATOCERA
-        offset=$(fdisk -l ../batocera.img | grep "Linux filesystem" | tail -1 | awk '{print $2*512}')
+        # بنماونت البارتيشن الرئيسي 8G - ده اللي فيه usr/ مش بتاع البوت 512M
+        offset=$(fdisk -l ../batocera.img | grep "batocera.img1" | awk '{print $2*512}')
         
         if [ -z "$offset" ]; then
-          echo "فشل: مش لاقي بارتيشن Linux filesystem"
+          echo "فشل: مش لاقي batocera.img1"
           exit 1
         fi
         
-        echo "Offset = $offset"
+        echo "Offset = $offset - بماونت البارتيشن الرئيسي 8G"
         mkdir -p mnt
         sudo mount -o loop,offset=$offset ../batocera.img mnt
         
         # اتأكد إن الـ mount نجح
         if [ ! -d "mnt/usr" ]; then
           echo "فشل: الـ mount فشل - فولدر mnt/usr مش موجود"
+          echo "محتوى mnt:"
           ls -la mnt/
+          sudo umount mnt 2>/dev/null || true
           exit 1
         fi
         
-        echo "الـ mount نجح ✅"
+        echo "الـ mount نجح ✅ - لقيت usr/"
+        ls mnt/usr | head -5
         
         # بوت شيك
         sudo mkdir -p mnt/usr/share/plymouth/themes/kso
