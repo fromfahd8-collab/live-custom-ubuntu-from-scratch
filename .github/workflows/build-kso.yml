@@ -1,4 +1,4 @@
-name: Build KSO Part 1 - 50 Games Auto Download
+name: Build KSO Part 1 - 50 Games Auto
 
 on:
   workflow_dispatch:
@@ -22,7 +22,6 @@ jobs:
       run: |
         echo "بدور على نسخة Batocera 40 شغالة..."
         
-        # ليستة الميرورز اللي نجربها
         MIRRORS=(
           "https://updates.batocera.org/x86_64/stable/40"
           "https://mirrors.o2switch.fr/batocera/x86_64/stable/40"
@@ -42,14 +41,12 @@ jobs:
               BATOCERA_FILE="$FULL_URL"
               echo "اللينك شغال، هنزل منه"
               break
-            else
-              echo "اللينك موجود بس مش شغال"
             fi
           fi
         done
         
         if [ -z "$BATOCERA_FILE" ]; then
-          echo "ملقتش أي نسخة Batocera 40 شغالة. هجرب آخر نسخة stable"
+          echo "ملقتش Batocera 40، هجرب آخر stable"
           BATOCERA_FILE="https://updates.batocera.org/x86_64/stable/last/batocera-x86_64-stable-last.img.gz"
         fi
         
@@ -93,6 +90,8 @@ jobs:
         sub_sprite.SetPosition(Window.GetWidth()/2 - sub.GetWidth()/2, Window.GetHeight()/2 + 70);
         ' | sudo tee mnt/usr/share/plymouth/themes/kso/kso.script
         
+        # اتصلح: بيعمل الفولدر قبل اللينك
+        sudo mkdir -p mnt/etc/alternatives
         sudo ln -sf /usr/share/plymouth/themes/kso/kso.plymouth mnt/etc/alternatives/default.plymouth
         
         # أنوية retroarch
