@@ -34,12 +34,12 @@ jobs:
         
         for MIRROR in "${MIRRORS[@]}"; do
           echo "بفحص: $MIRROR"
-          FILE=$(curl -s -L --max-time 10 "$MIRROR" | grep -o 'batocera-x86_64-40-[0-9]*\.img\.gz' | sort -V | tail -1)
+          FILE=$(curl -s -L --max-time 15 "$MIRROR" | grep -o 'batocera-x86_64-40-[0-9]*\.img\.gz' | sort -V | tail -1)
           
           if [ ! -z "$FILE" ]; then
             FULL_URL="${MIRROR}${FILE}"
             echo "لقيت: $FULL_URL"
-            HTTP_CODE=$(curl -s -L -o /dev/null -w "%{http_code}" --max-time 10 "$FULL_URL")
+            HTTP_CODE=$(curl -s -L -o /dev/null -w "%{http_code}" --max-time 15 "$FULL_URL")
             if [ "$HTTP_CODE" = "200" ]; then
               BATOCERA_URL="$FULL_URL"
               echo "✅ اللينك شغال 100% - HTTP $HTTP_CODE"
