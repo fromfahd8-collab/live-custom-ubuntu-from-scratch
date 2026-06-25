@@ -90,21 +90,23 @@ jobs:
         sub_sprite.SetPosition(Window.GetWidth()/2 - sub.GetWidth()/2, Window.GetHeight()/2 + 70);
         ' | sudo tee mnt/usr/share/plymouth/themes/kso/kso.script
         
-        # اتصلح: بيعمل الفولدر قبل اللينك
         sudo mkdir -p mnt/etc/alternatives
         sudo ln -sf /usr/share/plymouth/themes/kso/kso.plymouth mnt/etc/alternatives/default.plymouth
         
-        # أنوية retroarch
+        # أنوية retroarch - متصلح
         sudo mkdir -p mnt/userdata/system/configs/retroarch/cores
+        cd /tmp
         sudo apt-get download libretro-beetle-psx libretro-snes9x -qq
         sudo dpkg -x libretro-beetle-psx*.deb /tmp/psx
         sudo dpkg -x libretro-snes9x*.deb /tmp/snes
-        sudo cp /tmp/psx/usr/lib/*/libretro/*.so mnt/userdata/system/configs/retroarch/cores/ 2>/dev/null || true
-        sudo cp /tmp/snes/usr/lib/*/libretro/*.so mnt/userdata/system/configs/retroarch/cores/ 2>/dev/null || true
+        sudo cp /tmp/psx/usr/lib/*/libretro/*.so /home/runner/work/*/work/mnt/userdata/system/configs/retroarch/cores/ 2>/dev/null || true
+        sudo cp /tmp/snes/usr/lib/*/libretro/*.so /home/runner/work/*/work/mnt/userdata/system/configs/retroarch/cores/ 2>/dev/null || true
+        cd /home/runner/work/*/work
         
-        # خلفية شيك
+        # خلفية شيك - متصلح الفونت والـ permissions
         sudo mkdir -p mnt/usr/share/backgrounds
-        convert -size 1920x1080 xc:black -fill '#1E293B' -draw 'rectangle 0,950 1920,1080' -fill white -gravity center -pointsize 80 -annotate 0 'KSO-GamerOS' -fill '#3B82F6' -pointsize 40 -annotate +0+100 'برمجة عبد الله و عبد الرحمن هاني' mnt/usr/share/backgrounds/kso-wall.jpg
+        sudo chown root:root mnt/usr/share/backgrounds
+        sudo convert -size 1920x1080 xc:black -fill '#1E293B' -draw 'rectangle 0,950 1920,1080' -fill white -gravity center -font DejaVu-Sans -pointsize 80 -annotate 0 'KSO-GamerOS' -fill '#3B82F6' -pointsize 40 -annotate +0+100 'برمجة عبد الله و عبد الرحمن هاني' mnt/usr/share/backgrounds/kso-wall.jpg
         
         # سكريبت قفل Windows+Q
         sudo mkdir -p mnt/usr/bin
