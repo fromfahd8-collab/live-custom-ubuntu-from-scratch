@@ -64,9 +64,32 @@ jobs:
 
     - name: Mount and Modify
       run: |
+        set -e
         mkdir -p work && cd work
-        offset=$(fdisk -l ../batocera.img | grep batocera.img2 | awk '{print $2*512}')
-        mkdir -p mnt && sudo mount -o loop,offset=$offset ../batocera.img mnt
+        
+        echo "=== بفحص بارتيشنز Batocera ==="
+        fdisk -l ../batocera.img
+        
+        # هندور على أكبر بارتيشن ext4 - ده بتاع BATOCERA
+        offset=$(fdisk -l ../batocera.img | grep "Linux filesystem" | tail -1 | awk '{print $2*512}')
+        
+        if [ -z "$offset" ]; then
+          echo "فشل: مش لاقي بارتيشن Linux filesystem"
+          exit 1
+        fi
+        
+        echo "Offset = $offset"
+        mkdir -p mnt
+        sudo mount -o loop,offset=$offset ../batocera.img mnt
+        
+        # اتأكد إن الـ mount نجح
+        if [ ! -d "mnt/usr" ]; then
+          echo "فشل: الـ mount فشل - فولدر mnt/usr مش موجود"
+          ls -la mnt/
+          exit 1
+        fi
+        
+        echo "الـ mount نجح ✅"
         
         # بوت شيك
         sudo mkdir -p mnt/usr/share/plymouth/themes/kso
@@ -155,7 +178,7 @@ jobs:
         sudo wget -q https://github.com/romhack/psx-space/releases/download/v1.0/space.cue -O "Space-PSX.cue"
         sudo wget -q https://github.com/mine-test/psx-minetest/releases/download/v0.4/minetest-psx.cue -O "Minetest-PSX.cue"
         
-        # ألعاب SNES - 14 لعبة - متصلح
+        # ألعاب SNES - 14 لعبة
         cd $GITHUB_WORKSPACE/work/mnt/userdata/roms
         sudo mkdir -p snes && cd snes
         sudo wget -q https://github.com/mupfelofen-de/snes-template/releases/download/v1.0/template.sfc -O "SNES-Template.sfc"
@@ -173,7 +196,7 @@ jobs:
         sudo wget -q https://github.com/PeterLemon/SNES/raw/master/CPUTest/CPUTest.sfc -O "CPU-Lemon.sfc"
         sudo wget -q https://github.com/undisbeliever/snes-test-roms/raw/master/build/all.sfc -O "All-Test.sfc"
         
-        # كونفيج شيك - متصلح
+        # كونفيج شيك
         cd $GITHUB_WORKSPACE/work
         echo 'global.theme=kso-dark
         system.hostname=KSO-GamerOS-P1
