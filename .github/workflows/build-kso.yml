@@ -21,43 +21,36 @@ jobs:
     - name: Smart Download Batocera 40
       run: |
         set -e
-        echo "بدور على نسخة Batocera 40 شغالة..."
+        echo "بحمل Batocera 40 من لينك مباشر مضمون..."
         
-        MIRRORS=(
-          "https://updates.batocera.org/x86_64/stable/40"
-          "https://mirrors.o2switch.fr/batocera/x86_64/stable/40"
-          "https://batocera.org/upgrades/x86_64/stable/40"
-          "https://archive.batocera.org/x86_64/stable/40"
+        BATOCERA_URLS=(
+          "https://updates.batocera.org/x86_64/stable/40/batocera-x86_64-40-20240601.img.gz"
+          "https://mirrors.o2switch.fr/batocera/x86_64/stable/40/batocera-x86_64-40-20240529.img.gz"
+          "https://archive.batocera.org/x86_64/stable/40/batocera-x86_64-40-20240601.img.gz"
         )
         
-        BATOCERA_FILE=""
-        
-        for MIRROR in "${MIRRORS[@]}"; do
-          echo "بجرب: $MIRROR"
-          FILE=$(curl -s -L "$MIRROR/" | grep -o 'href="batocera-x86_64-40-[0-9]*.img.gz"' | head -1 | cut -d'"' -f2)
-          if [! -z "$FILE" ]; then
-            FULL_URL="${MIRROR}/${FILE}"
-            echo "لقيت ملف: $FULL_URL"
-            if wget --spider -q "$FULL_URL"; then
-              BATOCERA_FILE="$FULL_URL"
-              echo "اللينك شغال، هنزل منه"
-              break
-            fi
+        SUCCESS=0
+        for URL in "${BATOCERA_URLS[@]}"; do
+          echo "بجرب: $URL"
+          if wget -L --progress=dot:giga --retry-connrefused --waitretry=2 --read-timeout=30 --timeout=20 -t 3 -O batocera.img.gz "$URL"; then
+            echo "التحميل نجح من $URL"
+            SUCCESS=1
+            break
+          else
+            echo "فشل من $URL، بجرب اللي بعده..."
+            rm -f batocera.img.gz
           fi
         done
         
-        if [ -z "$BATOCERA_FILE" ]; then
-          echo "ملقتش Batocera 40، هجرب آخر stable"
-          BATOCERA_FILE="https://updates.batocera.org/x86_64/stable/last/batocera-x86_64-stable-last.img.gz"
+        if [ $SUCCESS -eq 0 ]; then
+          echo "كل اللينكات فشلت، بجرب aria2c..."
+          aria2c -x 16 -s 16 -o batocera.img.gz "https://updates.batocera.org/x86_64/stable/40/batocera-x86_64-40-20240601.img.gz" || exit 1
         fi
-        
-        echo "بحمل من: $BATOCERA_FILE"
-        wget -L --retry-connrefused --waitretry=2 --read-timeout=30 --timeout=20 -t 5 -O batocera.img.gz "$BATOCERA_FILE"
         
         echo "بفك الضغط..."
         gunzip batocera.img.gz
         
-        if [! -f batocera.img ]; then
+        if [ ! -f batocera.img ]; then
           echo "التحميل فشل"
           exit 1
         fi
@@ -69,14 +62,14 @@ jobs:
         mkdir -p work && cd work
         
         echo "=== بفحص بارتيشنز Batocera ==="
-        fdisk -l../batocera.img
+        fdisk -l ../batocera.img
         
         # بنماونت البارتيشن الكبير 8G اللي فيه ملف batocera
-        offset=$(fdisk -l../batocera.img | grep "batocera.img1" | awk '{print $2*512}')
+        offset=$(fdisk -l ../batocera.img | grep "batocera.img1" | awk '{print $2*512}')
         
         echo "Offset = $offset - بماونت البارتيشن الرئيسي"
         mkdir -p mnt
-        sudo mount -o loop,offset=$offset../batocera.img mnt
+        sudo mount -o loop,offset=$offset ../batocera.img mnt
         
         echo "محتوى البارتيشن:"
         ls -la mnt/
@@ -91,7 +84,7 @@ jobs:
         fi
         
         # اتأكد إن usr موجود
-        if [! -d "squashfs-root/usr" ]; then
+        if [ ! -d "squashfs-root/usr" ]; then
           echo "فشل: usr مش موجود بعد فك squashfs"
           exit 1
         fi
@@ -268,7 +261,7 @@ jobs:
         # بناء ISO
         mkdir -p iso/EFI/BOOT
         cp /usr/lib/grub/x86_64-efi/monolithic/grubx64.efi iso/EFI/BOOT/BOOTX64.EFI
-        cp../batocera.img iso/batocera.img
+        cp ../batocera.img iso/batocera.img
         echo 'set timeout=3
         set default=0
         menuentry "KSO-GamerOS Part 1 - برمجة عبد الله و عبد الرحمن هاني [ kso ]" {
