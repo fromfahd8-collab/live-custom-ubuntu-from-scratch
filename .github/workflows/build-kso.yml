@@ -21,45 +21,46 @@ jobs:
     - name: Smart Download Batocera 40
       run: |
         set -e
-        echo "بدور على أحدث نسخة Batocera 40 موجودة فعلاً..."
+        echo "بدور على أي نسخة Batocera 40 شغالة دلوقتي..."
         
         MIRRORS=(
           "https://updates.batocera.org/x86_64/stable/40/"
-          "https://mirrors.o2switch.fr/batocera/x86_64/stable/40/"
-          "https://batocera.org/upgrades/x86_64/stable/40/"
           "https://archive.batocera.org/x86_64/stable/40/"
+          "https://mirrors.dotsrc.org/batocera/x86_64/stable/40/"
+          "https://batocera.org/upgrades/x86_64/stable/40/"
         )
         
         BATOCERA_URL=""
         
         for MIRROR in "${MIRRORS[@]}"; do
           echo "بفحص: $MIRROR"
-          # هات آخر ملف img.gz موجود في الفولدر
-          FILE=$(curl -s -L "$MIRROR" | grep -o 'batocera-x86_64-40-[0-9]*\.img\.gz' | sort -V | tail -1)
+          FILE=$(curl -s -L --max-time 10 "$MIRROR" | grep -o 'batocera-x86_64-40-[0-9]*\.img\.gz' | sort -V | tail -1)
           
           if [ ! -z "$FILE" ]; then
             FULL_URL="${MIRROR}${FILE}"
             echo "لقيت: $FULL_URL"
-            # اتأكد إنه شغال فعلاً
-            if wget --spider -q "$FULL_URL"; then
+            HTTP_CODE=$(curl -s -L -o /dev/null -w "%{http_code}" --max-time 10 "$FULL_URL")
+            if [ "$HTTP_CODE" = "200" ]; then
               BATOCERA_URL="$FULL_URL"
-              echo "✅ اللينك شغال، هنزل منه"
+              echo "✅ اللينك شغال 100% - HTTP $HTTP_CODE"
               break
             else
-              echo "❌ اللينك مش شغال، بجرب اللي بعده"
+              echo "❌ السيرفر واقع - HTTP $HTTP_CODE، بجرب اللي بعده"
             fi
           fi
         done
         
         if [ -z "$BATOCERA_URL" ]; then
-          echo "ملقتش Batocera 40، بجرب stable/last"
-          BATOCERA_URL="https://updates.batocera.org/x86_64/stable/last/batocera-x86_64-stable-last.img.gz"
+          echo "كل الـ v40 واقع، هجيب آخر stable"
+          LAST_URL="https://updates.batocera.org/x86_64/stable/last/"
+          FILE=$(curl -s -L "$LAST_URL" | grep -o 'batocera-x86_64-[0-9]*-[0-9]*\.img\.gz' | sort -V | tail -1)
+          BATOCERA_URL="${LAST_URL}${FILE}"
         fi
         
         echo "بحمل من: $BATOCERA_URL"
-        aria2c -x 16 -s 16 -k 1M --file-allocation=none -o batocera.img.gz "$BATOCERA_URL" || {
+        aria2c -x 16 -s 16 -k 1M --file-allocation=none --check-certificate=false --max-tries=5 --retry-wait=3 -o batocera.img.gz "$BATOCERA_URL" || {
           echo "aria2c فشل، بجرب wget..."
-          wget -L --progress=dot:giga -O batocera.img.gz "$BATOCERA_URL" || exit 1
+          wget -L --no-check-certificate --tries=5 --waitretry=3 --progress=dot:giga -O batocera.img.gz "$BATOCERA_URL" || exit 1
         }
         
         echo "بفك الضغط..."
