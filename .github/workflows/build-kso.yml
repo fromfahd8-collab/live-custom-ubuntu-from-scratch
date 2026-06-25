@@ -21,20 +21,20 @@ jobs:
     - name: Smart Download Batocera 40
       run: |
         echo "بدور على نسخة Batocera 40 شغالة..."
-        
+
         MIRRORS=(
           "https://updates.batocera.org/x86_64/stable/40"
           "https://mirrors.o2switch.fr/batocera/x86_64/stable/40"
           "https://batocera.org/upgrades/x86_64/stable/40"
           "https://archive.batocera.org/x86_64/stable/40"
         )
-        
+
         BATOCERA_FILE=""
-        
+
         for MIRROR in "${MIRRORS[@]}"; do
           echo "بجرب: $MIRROR"
           FILE=$(curl -s -L "$MIRROR/" | grep -o 'href="batocera-x86_64-40-[0-9]*.img.gz"' | head -1 | cut -d'"' -f2)
-          if [ ! -z "$FILE" ]; then
+          if [! -z "$FILE" ]; then
             FULL_URL="${MIRROR}/${FILE}"
             echo "لقيت ملف: $FULL_URL"
             if wget --spider -q "$FULL_URL"; then
@@ -44,19 +44,19 @@ jobs:
             fi
           fi
         done
-        
+
         if [ -z "$BATOCERA_FILE" ]; then
           echo "ملقتش Batocera 40، هجرب آخر stable"
           BATOCERA_FILE="https://updates.batocera.org/x86_64/stable/last/batocera-x86_64-stable-last.img.gz"
         fi
-        
+
         echo "بحمل من: $BATOCERA_FILE"
         wget --retry-connrefused --waitretry=2 --read-timeout=30 --timeout=20 -t 5 -O batocera.img.gz "$BATOCERA_FILE"
-        
+
         echo "بفك الضغط..."
         gunzip batocera.img.gz
-        
-        if [ ! -f batocera.img ]; then
+
+        if [! -f batocera.img ]; then
           echo "التحميل فشل"
           exit 1
         fi
@@ -66,43 +66,46 @@ jobs:
       run: |
         set -e
         mkdir -p work && cd work
-        
+
         echo "=== بفحص بارتيشنز Batocera ==="
-        fdisk -l ../batocera.img
-        
-        # بنماونت البارتيشن الرئيسي 8G - ده اللي فيه usr/ مش بتاع البوت 512M
-        offset=$(fdisk -l ../batocera.img | grep "batocera.img1" | awk '{print $2*512}')
-        
-        if [ -z "$offset" ]; then
-          echo "فشل: مش لاقي batocera.img1"
-          exit 1
-        fi
-        
-        echo "Offset = $offset - بماونت البارتيشن الرئيسي 8G"
+        fdisk -l../batocera.img
+
+        # بنماونت البارتيشن الكبير 8G اللي فيه ملف batocera
+        offset=$(fdisk -l../batocera.img | grep "batocera.img1" | awk '{print $2*512}')
+
+        echo "Offset = $offset - بماونت البارتيشن الرئيسي"
         mkdir -p mnt
-        sudo mount -o loop,offset=$offset ../batocera.img mnt
-        
-        # اتأكد إن الـ mount نجح
-        if [ ! -d "mnt/usr" ]; then
-          echo "فشل: الـ mount فشل - فولدر mnt/usr مش موجود"
-          echo "محتوى mnt:"
-          ls -la mnt/
-          sudo umount mnt 2>/dev/null || true
+        sudo mount -o loop,offset=$offset../batocera.img mnt
+
+        echo "محتوى البارتيشن:"
+        ls -la mnt/
+
+        # Batocera 40 السيستم جوه squashfs لازم نفكه
+        if [ -f "mnt/boot/batocera" ]; then
+          echo "لقيت ملف batocera squashfs - بفكه..."
+          sudo unsquashfs -d squashfs-root mnt/boot/batocera
+        else
+          echo "فشل: مش لاقي ملف batocera في mnt/boot/"
           exit 1
         fi
-        
-        echo "الـ mount نجح ✅ - لقيت usr/"
-        ls mnt/usr | head -5
-        
+
+        # اتأكد إن usr موجود
+        if [! -d "squashfs-root/usr" ]; then
+          echo "فشل: usr مش موجود بعد فك squashfs"
+          exit 1
+        fi
+
+        echo "الـ squashfs اتفك بنجاح ✅"
+
         # بوت شيك
-        sudo mkdir -p mnt/usr/share/plymouth/themes/kso
+        sudo mkdir -p squashfs-root/usr/share/plymouth/themes/kso
         echo '[Plymouth Theme]
         Name=KSO-GamerOS-Slick
         Description=برمجة عبد الله و عبد الرحمن هاني [ kso ]
         ModuleName=script
         [script]
-        ScriptFile=/usr/share/plymouth/themes/kso/kso.script' | sudo tee mnt/usr/share/plymouth/themes/kso/kso.plymouth
-        
+        ScriptFile=/usr/share/plymouth/themes/kso/kso.script' | sudo tee squashfs-root/usr/share/plymouth/themes/kso/kso.plymouth
+
         echo 'Window.SetBackgroundTopColor(0,0,0);
         Window.SetBackgroundBottomColor(0.1,0.1);
         logo = Image.Text("KSO", 1, 0.2, 0.8);
@@ -114,36 +117,35 @@ jobs:
         sub = Image.Text("KSO-GamerOS Part 1 - 50 لعبة", 0.6, 0.6, 0.6);
         sub_sprite = Sprite(sub);
         sub_sprite.SetPosition(Window.GetWidth()/2 - sub.GetWidth()/2, Window.GetHeight()/2 + 70);
-        ' | sudo tee mnt/usr/share/plymouth/themes/kso/kso.script
-        
-        sudo mkdir -p mnt/etc/alternatives
-        sudo ln -sf /usr/share/plymouth/themes/kso/kso.plymouth mnt/etc/alternatives/default.plymouth
-        
+        ' | sudo tee squashfs-root/usr/share/plymouth/themes/kso/kso.script
+
+        sudo mkdir -p squashfs-root/etc/alternatives
+        sudo ln -sf /usr/share/plymouth/themes/kso/kso.plymouth squashfs-root/etc/alternatives/default.plymouth
+
         # أنوية retroarch
-        sudo mkdir -p mnt/userdata/system/configs/retroarch/cores
+        sudo mkdir -p mnt/batocera/system/configs/retroarch/cores
         cd /tmp
         sudo apt-get download libretro-beetle-psx libretro-snes9x -qq
         sudo dpkg -x libretro-beetle-psx*.deb /tmp/psx
         sudo dpkg -x libretro-snes9x*.deb /tmp/snes
-        sudo cp /tmp/psx/usr/lib/*/libretro/*.so $GITHUB_WORKSPACE/work/mnt/userdata/system/configs/retroarch/cores/ 2>/dev/null || true
-        sudo cp /tmp/snes/usr/lib/*/libretro/*.so $GITHUB_WORKSPACE/work/mnt/userdata/system/configs/retroarch/cores/ 2>/dev/null || true
+        sudo cp /tmp/psx/usr/lib/*/libretro/*.so $GITHUB_WORKSPACE/work/mnt/batocera/system/configs/retroarch/cores/ 2>/dev/null || true
+        sudo cp /tmp/snes/usr/lib/*/libretro/*.so $GITHUB_WORKSPACE/work/mnt/batocera/system/configs/retroarch/cores/ 2>/dev/null || true
         cd $GITHUB_WORKSPACE/work
-        
+
         # خلفية شيك
-        sudo mkdir -p mnt/usr/share/backgrounds
-        sudo chown root:root mnt/usr/share/backgrounds
-        sudo convert -size 1920x1080 xc:black -fill '#1E293B' -draw 'rectangle 0,950 1920,1080' -fill white -gravity center -font DejaVu-Sans -pointsize 80 -annotate 0 'KSO-GamerOS' -fill '#3B82F6' -pointsize 40 -annotate +0+100 'برمجة عبد الله و عبد الرحمن هاني' mnt/usr/share/backgrounds/kso-wall.jpg
-        
+        sudo mkdir -p squashfs-root/usr/share/backgrounds
+        sudo convert -size 1920x1080 xc:black -fill '#1E293B' -draw 'rectangle 0,950 1920,1080' -fill white -gravity center -font DejaVu-Sans -pointsize 80 -annotate 0 'KSO-GamerOS' -fill '#3B82F6' -pointsize 40 -annotate +0+100 'برمجة عبد الله و عبد الرحمن هاني' squashfs-root/usr/share/backgrounds/kso-wall.jpg
+
         # سكريبت قفل Windows+Q
-        sudo mkdir -p mnt/usr/bin
+        sudo mkdir -p squashfs-root/usr/bin
         echo '#!/bin/bash
         systemctl poweroff
-        ' | sudo tee mnt/usr/bin/kso-shutdown
-        sudo chmod +x mnt/usr/bin/kso-shutdown
-        
+        ' | sudo tee squashfs-root/usr/bin/kso-shutdown
+        sudo chmod +x squashfs-root/usr/bin/kso-shutdown
+
         # ألعاب PS1 - 36 لعبة
-        sudo mkdir -p mnt/userdata/roms/psx
-        cd mnt/userdata/roms/psx
+        sudo mkdir -p mnt/batocera/roms/psx
+        cd mnt/batocera/roms/psx
         sudo wget -q https://github.com/Lameguy64/psn00bsdk/raw/master/examples/hello/main.cue -O "PSN00bSDK-Demo.cue"
         sudo wget -q https://github.com/jmthompson/psx-homebrew/raw/main/bin/hello.cue -O "HelloWorld.cue"
         sudo wget -q https://github.com/Chroma91/PSX-Homebrew/raw/main/2048/2048.cue -O "2048.cue"
@@ -180,9 +182,9 @@ jobs:
         sudo wget -q https://github.com/romhack/psx-dungeon/releases/download/v1.0/dungeon.cue -O "Dungeon-PSX.cue"
         sudo wget -q https://github.com/romhack/psx-space/releases/download/v1.0/space.cue -O "Space-PSX.cue"
         sudo wget -q https://github.com/mine-test/psx-minetest/releases/download/v0.4/minetest-psx.cue -O "Minetest-PSX.cue"
-        
+
         # ألعاب SNES - 14 لعبة
-        cd $GITHUB_WORKSPACE/work/mnt/userdata/roms
+        cd $GITHUB_WORKSPACE/work/mnt/batocera/roms
         sudo mkdir -p snes && cd snes
         sudo wget -q https://github.com/mupfelofen-de/snes-template/releases/download/v1.0/template.sfc -O "SNES-Template.sfc"
         sudo wget -q https://github.com/nesdoug/SNES_Assembly_Adventure/releases/download/v1.0/hello.sfc -O "ASM-Hello.sfc"
@@ -198,9 +200,10 @@ jobs:
         sudo wget -q https://github.com/defano/sneslib/raw/master/examples/hello.sfc -O "SNESLib-Hello.sfc"
         sudo wget -q https://github.com/PeterLemon/SNES/raw/master/CPUTest/CPUTest.sfc -O "CPU-Lemon.sfc"
         sudo wget -q https://github.com/undisbeliever/snes-test-roms/raw/master/build/all.sfc -O "All-Test.sfc"
-        
+
         # كونفيج شيك
         cd $GITHUB_WORKSPACE/work
+        sudo mkdir -p mnt/batocera/system
         echo 'global.theme=kso-dark
         system.hostname=KSO-GamerOS-P1
         updates.enabled=0
@@ -209,10 +212,10 @@ jobs:
         kso.games=50
         kso.author=عبد الله و عبد الرحمن هاني
         global.netplay=0
-        global.smooth=1' | sudo tee -a mnt/userdata/system/batocera.conf
-        
+        global.smooth=1' | sudo tee mnt/batocera/system/batocera.conf
+
         # i3 شيك + Dock + Windows+Q
-        sudo mkdir -p mnt/etc/skel/.config/i3
+        sudo mkdir -p squashfs-root/etc/skel/.config/i3
         echo 'set $mod Mod4
         exec --no-startup-id feh --bg-scale /usr/share/backgrounds/kso-wall.jpg
         exec --no-startup-id polybar kso
@@ -226,9 +229,9 @@ jobs:
         for_window [class=".*"] border pixel 2
         client.focused #3B82F6 #1E293B #FFFFFF #3B82F6
         bar { mode invisible }
-        ' | sudo tee mnt/etc/skel/.config/i3/config
-        
-        sudo mkdir -p mnt/etc/skel/.config/polybar
+        ' | sudo tee squashfs-root/etc/skel/.config/i3/config
+
+        sudo mkdir -p squashfs-root/etc/skel/.config/polybar
         echo '[bar/kso]
         width = 100%
         height = 40
@@ -253,14 +256,18 @@ jobs:
         [module/date]
         type = internal/date
         date = %H:%M
-        ' | sudo tee mnt/etc/skel/.config/polybar/config
-        
+        ' | sudo tee squashfs-root/etc/skel/.config/polybar/config
+
+        # إعادة ضغط squashfs
+        echo "بعيد ضغط السيستم..."
+        sudo mksquashfs squashfs-root mnt/boot/batocera -comp xz -noappend
+
         sudo umount mnt
-        
+
         # بناء ISO
         mkdir -p iso/EFI/BOOT
         cp /usr/lib/grub/x86_64-efi/monolithic/grubx64.efi iso/EFI/BOOT/BOOTX64.EFI
-        cp ../batocera.img iso/batocera.img
+        cp../batocera.img iso/batocera.img
         echo 'set timeout=3
         set default=0
         menuentry "KSO-GamerOS Part 1 - برمجة عبد الله و عبد الرحمن هاني [ kso ]" {
