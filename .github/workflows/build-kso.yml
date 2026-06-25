@@ -21,18 +21,18 @@ jobs:
     - name: Auto Download Latest Batocera
       run: |
         echo "بدور على آخر نسخة Batocera 40..."
-        LATEST_URL=$(curl -s https://mirrors.o2switch.fr/batocera/x86_64/stable/ | grep -o 'href="batocera-x86_64-40-[0-9]*.img.gz"' | head -1 | cut -d'"' -f2)
-        if [ -z "$LATEST_URL" ]; then
-          echo "الـ mirror الأول فشل، بجرب الرسمي..."
-          LATEST_URL=$(curl -s https://updates.batocera.org/x86_64/stable/ | grep -o 'href="batocera-x86_64-40-[0-9]*.img.gz"' | head -1 | cut -d'"' -f2)
-          BASE_URL="https://updates.batocera.org/x86_64/stable/"
-        else
-          BASE_URL="https://mirrors.o2switch.fr/batocera/x86_64/stable/"
-        fi
+        BATOCERA_URL="https://updates.batocera.org/x86_64/stable/last/batocera-x86_64-40-20240404.img.gz"
+        echo "بحمل من: $BATOCERA_URL"
+        wget --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 3 -O batocera.img.gz "$BATOCERA_URL"
         
-        echo "لقيت: $LATEST_URL"
-        wget -q ${BASE_URL}${LATEST_URL}
-        gunzip ${LATEST_URL} && mv ${LATEST_URL%.gz} batocera.img
+        echo "بفك الضغط..."
+        gunzip batocera.img.gz
+        mv batocera.img batocera.img
+        
+        if [! -f batocera.img ]; then
+          echo "فشل التحميل"
+          exit 1
+        fi
         echo "نزلت وخلصت: $(ls -lh batocera.img)"
 
     - name: Mount and Modify
