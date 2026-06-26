@@ -16,26 +16,42 @@ jobs:
     - name: Install Dependencies
       run: |
         sudo apt-get update -qq
-        sudo apt-get install -y wget p7zip-full grub-efi-amd64-bin mtools imagemagick squashfs-tools aria2 git fdisk retroarch libretro-* feh polybar rofi fonts-noto-color-emoji curl jq -qq
+        sudo apt-get install -y wget p7zip-full grub-efi-amd64-bin mtools imagemagick squashfs-tools aria2 git fdisk retroarch libretro-* feh polybar rofi fonts-noto-color-emoji curl -qq
 
-    - name: Download Batocera v40 Direct Link
+    - name: Auto Find & Download Batocera x86_64
       run: |
         set -e
-        echo "بحمل Batocera v40 مباشر من الميرور الفرنسي..."
+        echo "بدور على آخر ملف x86_64 في مجلد last..."
         
-        # لينك مباشر v40 شغال مضمون - نفس فكرة سكريبتك
-        BATOCERA_URL="https://mirrors.o2switch.fr/batocera/x86_64/stable/last/batocera-x86_64-40-20240601.img.gz"
+        BASE_URL="https://mirrors.o2switch.fr/batocera/x86_64/stable/last/"
         
-        echo "اللينك: $BATOCERA_URL"
-        aria2c -x 16 -s 16 -k 1M --file-allocation=none --check-certificate=false --max-tries=5 -o batocera.img.gz "$BATOCERA_URL" || {
+        # هو اللي يدور بنفسه ويجيب اسم آخر ملف
+        LATEST_FILE=$(curl -s $BASE_URL | grep -o 'href="batocera-x86_64-[^"]*\.img\.gz"' | head -1 | cut -d'"' -f2)
+        
+        if [ -z "$LATEST_FILE" ]; then
+          echo "ملقتش ملف في last، بجرب فولدر stable..."
+          BASE_URL="https://mirrors.o2switch.fr/batocera/x86_64/stable/"
+          LATEST_FILE=$(curl -s $BASE_URL | grep -o 'href="batocera-x86_64-[^"]*\.img\.gz"' | sort -V | tail -1)
+        fi
+        
+        if [ -z "$LATEST_FILE" ]; then
+          echo "فشل: مش لاقي أي ملف x86_64"
+          exit 1
+        fi
+        
+        FULL_URL="${BASE_URL}${LATEST_FILE}"
+        echo "✅ لقيت ملف شغال: $LATEST_FILE"
+        echo "بحمل من: $FULL_URL"
+        
+        aria2c -x 16 -s 16 -k 1M --file-allocation=none --check-certificate=false --max-tries=5 -o batocera.img.gz "$FULL_URL" || {
           echo "aria2c فشل، بجرب wget..."
-          wget -L --no-check-certificate --tries=5 --progress=dot:giga -O batocera.img.gz "$BATOCERA_URL" || exit 1
+          wget -L --no-check-certificate --tries=5 --progress=dot:giga -O batocera.img.gz "$FULL_URL" || exit 1
         }
         
         echo "بفك الضغط..."
         gunzip batocera.img.gz
         
-        if [! -f batocera.img ]; then
+        if [ ! -f batocera.img ]; then
           echo "التحميل فشل"
           exit 1
         fi
@@ -47,13 +63,13 @@ jobs:
         mkdir -p work && cd work
         
         echo "=== بفحص بارتيشنز Batocera ==="
-        fdisk -l../batocera.img
+        fdisk -l ../batocera.img
         
-        offset=$(fdisk -l../batocera.img | grep "batocera.img1" | awk '{print $2*512}')
+        offset=$(fdisk -l ../batocera.img | grep "batocera.img1" | awk '{print $2*512}')
         
         echo "Offset = $offset - بماونت البارتيشن الرئيسي"
         mkdir -p mnt
-        sudo mount -o loop,offset=$offset../batocera.img mnt
+        sudo mount -o loop,offset=$offset ../batocera.img mnt
         
         echo "محتوى البارتيشن:"
         ls -la mnt/
@@ -66,7 +82,7 @@ jobs:
           exit 1
         fi
         
-        if [! -d "squashfs-root/usr" ]; then
+        if [ ! -d "squashfs-root/usr" ]; then
           echo "فشل: usr مش موجود بعد فك squashfs"
           exit 1
         fi
@@ -243,7 +259,7 @@ jobs:
         # بناء ISO
         mkdir -p iso/EFI/BOOT
         cp /usr/lib/grub/x86_64-efi/monolithic/grubx64.efi iso/EFI/BOOT/BOOTX64.EFI
-        cp../batocera.img iso/batocera.img
+        cp ../batocera.img iso/batocera.img
         echo 'set timeout=3
         set default=0
         menuentry "KSO-GamerOS Part 1 - برمجة عبد الله و عبد الرحمن هاني [ kso ]" {
