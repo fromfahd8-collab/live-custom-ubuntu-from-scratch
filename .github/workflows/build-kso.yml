@@ -1,4 +1,4 @@
-name: Build KSO FUN - 11 GAMES V14 STEALTH
+name: Build KSO FUN - 11 GAMES V15 NO BATOCERA
 
 on:
   workflow_dispatch:
@@ -11,29 +11,19 @@ jobs:
     - name: Maximize Build Space
       run: sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /usr/share/swift /usr/local/.ghcup && sudo apt-get clean && df -h
 
-    - name: Install Dependencies
+    - name: Install All Emulators + i3 + Minetest
       run: |
         sudo apt-get update -qq
-        sudo apt-get install -y wget p7zip-full grub-efi-amd64-bin mtools imagemagick squashfs-tools aria2 git fdisk retroarch feh polybar rofi fonts-noto-color-emoji curl unzip minetest -qq
+        sudo apt-get install -y grub-efi-amd64-bin mtools imagemagick squashfs-tools git fdisk xorriso i3 feh rofi fonts-noto-color-emoji curl unzip minetest pcsxr snes9x-mt mgba mame -qq
 
-    - name: STEALTH DOWNLOAD BATOCERA 42.1
+    - name: Build KSO System From Scratch
       run: |
         set -e
-        echo "بنسرق باتوسيرا 42.1..."
-        # هنستخدم curl عشان بيعرف يخدع اكتر + هنقسم الملف
-        curl -L -C - --retry 10 --retry-delay 5 --user-agent "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36" --header "Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8" --header "Accept-Language: en-US,en;q=0.5" --header "Referer: https://www.google.com/" -o batocera.img.gz "https://archive.org/download/batocera-x86_64-42.1/batocera-x86_64-42.1-20250519.img.gz"
-        gunzip batocera.img.gz
-        ls -lh batocera.img
-
-    - name: Mount and Modify KSO FUN LIGHT
-      run: |
-        set -e
-        mkdir -p work && cd work
-        offset=$(fdisk -l ../batocera.img | grep "batocera.img1" | awk '{print $2*512}')
-        mkdir -p mnt && sudo mount -o loop,offset=$offset ../batocera.img mnt
-        sudo unsquashfs -d squashfs-root mnt/boot/batocera
-
-        sudo mkdir -p squashfs-root/usr/share/plymouth/themes/kso
+        mkdir -p rootfs
+        cd rootfs
+        
+        # === 1. البوت المتحرك - KSO EDITION ===
+        sudo mkdir -p usr/share/plymouth/themes/kso
         echo '[Plymouth Theme]
         Name=KSO-GamerOS-FUN
         Description=برمجة عبد الله و عبد الرحمن هاني [ kso ]
@@ -51,60 +41,65 @@ jobs:
         kso_text_sprite.SetX(Window.GetWidth()/2 - kso_text.GetWidth()/2);
         kso_text_sprite.SetY(Window.GetHeight()/2 + 20);
         kso_alpha = 0.5; kso_dir = 0.02; kso_logo_sprite.SetOpacity(kso_alpha);
-        kso.draw_bg = fun() { kso_alpha = kso_alpha + kso_dir; if(kso_alpha > 1.0 || kso_alpha < 0.3) { kso_dir = -kso_dir; } kso_logo_sprite.SetOpacity(kso_alpha); };' | sudo tee squashfs-root/usr/share/plymouth/themes/kso/kso.script
+        kso.draw_bg = fun() { kso_alpha = kso_alpha + kso_dir; if(kso_alpha > 1.0 || kso_alpha < 0.3) { kso_dir = -kso_dir; } kso_logo_sprite.SetOpacity(kso_alpha); };' | sudo tee usr/share/plymouth/themes/kso/kso.script
         echo '[Plymouth Theme]
         Name=KSO-GamerOS-FUN
-        ModuleName=script' | sudo tee squashfs-root/usr/share/plymouth/themes/kso/kso.plymouth
-        sudo ln -sf /usr/share/plymouth/themes/kso/kso.plymouth squashfs-root/etc/alternatives/default.plymouth
+        ModuleName=script' | sudo tee usr/share/plymouth/themes/kso/kso.plymouth
+        sudo ln -sf /usr/share/plymouth/themes/kso/kso.plymouth etc/alternatives/default.plymouth
 
-        sudo mkdir -p squashfs-root/usr/share/backgrounds
-        sudo convert -size 1920x1080 xc:'#0F172A' -fill '#3B82F6' -pointsize 120 -gravity center -annotate +0-80 'KSO' -fill white -pointsize 40 -annotate +0+40 'برمجة عبد الله و عبد الرحمن هاني' -fill '#60A5FA' -pointsize 30 -annotate +0+90 '11 GAMES + MINETEST' squashfs-root/usr/share/backgrounds/kso-wall.jpg
+        # === 2. خلفية ===
+        sudo mkdir -p usr/share/backgrounds
+        sudo convert -size 1920x1080 xc:'#0F172A' -fill '#3B82F6' -pointsize 120 -gravity center -annotate +0-80 'KSO' -fill white -pointsize 40 -annotate +0+40 'برمجة عبد الله و عبد الرحمن هاني' -fill '#60A5FA' -pointsize 30 -annotate +0+90 '11 GAMES NO BATOCERA' usr/share/backgrounds/kso-wall.jpg
 
-        sudo mkdir -p squashfs-root/usr/bin squashfs-root/etc/skel/.config/i3
+        # === 3. i3 + ماوس + Windows+Q ===
+        sudo mkdir -p usr/bin etc/skel/.config/i3
         echo '#!/bin/bash
-        systemctl poweroff' | sudo tee squashfs-root/usr/bin/kso-shutdown && sudo chmod +x squashfs-root/usr/bin/kso-shutdown
+        systemctl poweroff' | sudo tee usr/bin/kso-shutdown && sudo chmod +x usr/bin/kso-shutdown
         echo 'set $mod Mod4
         exec --no-startup-id feh --bg-scale /usr/share/backgrounds/kso-wall.jpg
         exec --no-startup-id xsetroot -cursor_name left_ptr
-        bindsym $mod+g exec emulationstation
+        bindsym $mod+g exec retroarch
         bindsym $mod+q exec kso-shutdown
         bindsym $mod+d exec rofi -show drun -theme gruvbox-dark
         mouse mod1 button1 move
         gaps inner 8
-        client.focused #3B82F6 #1E293B #FFFFFF #3B82F6' | sudo tee squashfs-root/etc/skel/.config/i3/config
+        client.focused #3B82F6 #1E293B #FFFFFF #3B82F6' | sudo tee etc/skel/.config/i3/config
 
-        sudo mkdir -p mnt/batocera/roms/ports squashfs-root/etc/skel/.minetest
+        # === 4. Minetest باعدادات خفيفة ===
+        sudo mkdir -p etc/skel/.minetest
         echo 'video_driver = opengl
         enable_shaders = false
         enable_particles = false
         enable_clouds = false
         view_bobbing_amount = 0.0
         fps_max = 60
-        render_distance = 50' | sudo tee squashfs-root/etc/skel/.minetest/minetest.conf
-        echo '#!/bin/bash
-        minetest' | sudo tee mnt/batocera/roms/ports/Minetest.sh
-        sudo chmod +x mnt/batocera/roms/ports/Minetest.sh
+        render_distance = 50' | sudo tee etc/skel/.minetest/minetest.conf
 
-        sudo mkdir -p mnt/batocera/roms/psx mnt/batocera/roms/snes mnt/batocera/roms/gba mnt/batocera/roms/arcade
-        cd mnt/batocera/roms
+        # === 5. 10 العاب مختلفة ===
+        sudo mkdir -p usr/share/games/kso/psx usr/share/games/kso/snes usr/share/games/kso/gba usr/share/games/kso/arcade
+        cd usr/share/games/kso
         cd psx && wget -q --tries=3 https://archive.org/download/PSX-Homebrew-Demos/PSXDoom.PBP -O Doom.PBP && wget -q --tries=3 https://archive.org/download/psx-homebrew/DukeNukem.PBP -O Duke.PBP && wget -q --tries=3 https://archive.org/download/psx-homebrew/Wolf3D.PBP -O Wolf3D.PBP
-        cd ../snes && wget -q --tries=3 https://archive.org/download/snes-homebrew/SNES-Tetris.sfc -O Tetris.sfc && wget -q --tries=3 https://archive.org/download/snes-homebrew/SuperMarioWorld.sfc -O Mario.sfc && wget -q --tries=3 https://archive.org/download/snes-homebrew/StreetFighter2.sfc -O SF2.sfc
-        cd ../gba && wget -q --tries=3 https://archive.org/download/gba-homebrew/CaveStory.gba -O CaveStory.gba && wget -q --tries=3 https://archive.org/download/gba-homebrew/2004-mine.gba -O Mine.gba
-        cd ../arcade && wget -q --tries=3 https://archive.org/download/mame-0.259-roms/arkanoid.zip -O Arkanoid.zip && wget -q --tries=3 https://archive.org/download/mame-0.259-roms/pacman.zip -O Pacman.zip
+        cd../snes && wget -q --tries=3 https://archive.org/download/snes-homebrew/SNES-Tetris.sfc -O Tetris.sfc && wget -q --tries=3 https://archive.org/download/snes-homebrew/SuperMarioWorld.sfc -O Mario.sfc && wget -q --tries=3 https://archive.org/download/snes-homebrew/StreetFighter2.sfc -O SF2.sfc
+        cd../gba && wget -q --tries=3 https://archive.org/download/gba-homebrew/CaveStory.gba -O CaveStory.gba && wget -q --tries=3 https://archive.org/download/gba-homebrew/2004-mine.gba -O Mine.gba
+        cd../arcade && wget -q --tries=3 https://archive.org/download/mame-0.259-roms/arkanoid.zip -O Arkanoid.zip && wget -q --tries=3 https://archive.org/download/mame-0.259-roms/pacman.zip -O Pacman.zip
 
-        sudo mksquashfs squashfs-root mnt/boot/batocera -comp xz -Xbcj x86 -b 1024K -noappend -processors 2
-        sudo umount mnt
-        mkdir -p iso/EFI/BOOT
-        cp /usr/lib/grub/x86_64-efi/monolithic/grubx64.efi iso/EFI/BOOT/BOOTX64.EFI
-        cp ../batocera.img iso/batocera.img
+        cd../..
+
+    - name: Make ISO
+      run: |
+        mkdir -p iso/boot/grub
+        cp /usr/lib/grub/x86_64-efi/monolithic/grubx64.efi iso/boot/grub/BOOTX64.EFI
         echo 'set timeout=3
         menuentry "KSO-GamerOS 11 GAMES" {
-          linux /batocera.img
-        }' | sudo tee iso/EFI/BOOT/grub.cfg
-        xorriso -as mkisofs -o KSO-FUN-11GAMES.iso -isohybrid-gpt-basdat -eltorito-alt-boot -e EFI/BOOT/BOOTX64.EFI -no-emul-boot -V "KSO_11" iso/
+          linux /vmlinuz root=/dev/ram0
+          initrd /initrd.img
+        }' | sudo tee iso/boot/grub/grub.cfg
+        mksquashfs rootfs filesystem.squashfs -comp xz -b 1024K
+        cp filesystem.squashfs iso/
+        xorriso -as mkisofs -o KSO-FUN-11GAMES-V15.iso -isohybrid-gpt-basdat -eltorito-alt-boot -e boot/grub/BOOTX64.EFI -no-emul-boot -V "KSO_15" iso/
 
     - name: Upload ISO
       uses: actions/upload-artifact@v4
       with:
-        name: KSO-FUN-11GAMES-V14
-        path: KSO-FUN-11GAMES.iso
+        name: KSO-FUN-11GAMES-V15
+        path: KSO-FUN-11GAMES-V15.iso
