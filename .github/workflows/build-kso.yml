@@ -1,4 +1,4 @@
-name: Build KSO FUN - 11 GAMES V16.5 LIVE FINAL
+name: Build KSO FUN - 11 GAMES V16.6 LIVE FINAL
 
 on:
   workflow_dispatch:
@@ -75,7 +75,7 @@ jobs:
         fps_max = 60
         render_distance = 50' | sudo tee etc/skel/.minetest/minetest.conf
 
-        # === 5. الـ 11 لعبة - نزلناها في /tmp الاول ===
+        # === 5. الـ 11 لعبة - صلحت المسافات هنا ===
         mkdir -p /tmp/kso_games/psx /tmp/kso_games/snes /tmp/kso_games/gba /tmp/kso_games/arcade
         cd /tmp/kso_games
         cd psx && wget -q --tries=3 https://archive.org/download/PSX-Homebrew-Demos/PSXDoom.PBP -O Doom.PBP && wget -q --tries=3 https://archive.org/download/psx-homebrew/DukeNukem.PBP -O Duke.PBP && wget -q --tries=3 https://archive.org/download/psx-homebrew/Wolf3D.PBP -O Wolf3D.PBP
@@ -104,5 +104,5 @@ jobs:
     - name: Upload ISO
       uses: actions/upload-artifact@v4
       with:
-        name: KSO-FUN-LIVE-V16.5
+        name: KSO-FUN-LIVE-V16.6
         path: KSO-FUN-LIVE.iso
