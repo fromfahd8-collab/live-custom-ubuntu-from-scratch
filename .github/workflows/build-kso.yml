@@ -1,4 +1,4 @@
-name: Build KSO FUN - 11 GAMES V17.0 LIVE FINAL
+name: Build KSO FUN - 11 GAMES V18.0 LIVE FINAL
 
 on:
   workflow_dispatch:
@@ -11,7 +11,7 @@ jobs:
     - name: Maximize Build Space
       run: sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /usr/share/swift /usr/local/.ghcup && sudo apt-get clean && df -h
 
-    - name: Install RetroArch + i3 + Minetest + Kernel + Fonts
+    - name: Install Tools
       run: |
         sudo apt-get update -qq
         sudo apt-get install -y grub-efi-amd64-bin mtools imagemagick squashfs-tools git fdisk xorriso i3 feh rofi fonts-noto-color-emoji fonts-dejavu-core curl unzip minetest retroarch libretro-* linux-generic casper -qq
@@ -82,24 +82,24 @@ jobs:
         cd $GITHUB_WORKSPACE/rootfs
         sudo mkdir -p usr/share/games/kso
         sudo cp -r /tmp/kso_games/* usr/share/games/kso/
+        sudo mksquashfs.../filesystem.squashfs -comp xz -b 1024K # ضغطنا علطول من غير فولدر iso
 
-    - name: Make LIVE ISO
+    - name: Make LIVE ISO with xorriso
       run: |
-        sudo rm -rf iso_kso # غيرنا الاسم
-        sudo mkdir -p iso_kso/boot/grub iso_kso/casper 
-        sudo cp /boot/vmlinuz-* iso_kso/casper/vmlinuz 
-        sudo cp /boot/initrd.img-* iso_kso/casper/initrd 
-        sudo mksquashfs rootfs iso_kso/casper/filesystem.squashfs -comp xz -b 1024K
+        sudo mkdir -p isohybrid
+        sudo cp /boot/vmlinuz-* isohybrid/vmlinuz
+        sudo cp /boot/initrd.img-* isohybrid/initrd
+        sudo cp filesystem.squashfs isohybrid/filesystem.squashfs
         echo 'set timeout=3
         menuentry "KSO-GamerOS LIVE 11 GAMES" {
-          linux /casper/vmlinuz boot=casper quiet splash
-          initrd /casper/initrd
-        }' | sudo tee iso_kso/boot/grub/grub.cfg
-        sudo cp /usr/lib/grub/x86_64-efi/monolithic/grubx64.efi iso_kso/boot/grub/BOOTX64.EFI
-        sudo xorriso -as mkisofs -o KSO-FUN-LIVE.iso -isohybrid-gpt-basdat -eltorito-alt-boot -e boot/grub/BOOTX64.EFI -no-emul-boot -V "KSO_LIVE" iso_kso/ # غيرنا الاسم هنا
+          linux /vmlinuz boot=casper quiet splash
+          initrd /initrd
+        }' | sudo tee isohybrid/grub.cfg
+        sudo cp /usr/lib/grub/x86_64-efi/monolithic/grubx64.efi isohybrid/BOOTX64.EFI
+        sudo xorriso -as mkisofs -o KSO-FUN-LIVE.iso -isohybrid-gpt-basdat -eltorito-alt-boot -e BOOTX64.EFI -no-emul-boot -graft-points /boot/grub= isohybrid/ /casper/filesystem.squashfs=isohybrid/filesystem.squashfs /casper/vmlinuz=isohybrid/vmlinuz /casper/initrd=isohybrid/initrd -V "KSO_LIVE".
 
     - name: Upload ISO
       uses: actions/upload-artifact@v4
       with:
-        name: KSO-FUN-LIVE-V17.0
+        name: KSO-FUN-LIVE-V18.0
         path: KSO-FUN-LIVE.iso
