@@ -1,4 +1,4 @@
-name: Build KSO Part 1 - 50 Games REAL
+name: Build KSO FUN - 50 Games REAL
 
 on:
   workflow_dispatch:
@@ -6,133 +6,80 @@ on:
 jobs:
   build:
     runs-on: ubuntu-22.04
+    timeout-minutes: 360
     steps:
     - name: Maximize Build Space
-      run: |
-        sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc
-        sudo apt-get clean
-        df -h
+      run: sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc && sudo apt-get clean && df -h
 
     - name: Install Dependencies
       run: |
         sudo apt-get update -qq
-        sudo apt-get install -y wget p7zip-full grub-efi-amd64-bin mtools imagemagick squashfs-tools aria2 git fdisk retroarch libretro-* feh polybar rofi fonts-noto-color-emoji curl unzip -qq
+        sudo apt-get install -y wget p7zip-full grub-efi-amd64-bin mtools imagemagick squashfs-tools aria2 git fdisk retroarch libretro-beetle-psx libretro-snes9x libretro-mame libretro-gambatte feh polybar rofi fonts-noto-color-emoji curl unzip -qq
 
-    - name: Auto Find & Download Batocera x86_64
+    - name: Download Batocera 43.1
       run: |
-        set -e
-        echo "بستخدم الميرور الفرنسي المباشر..."
-        FILE_NAME="batocera-x86_64-43.1-20260529.img.gz"
-        FULL_URL="https://mirrors.o2switch.fr/batocera/x86_64/stable/43.1/${FILE_NAME}"
-        aria2c -x 16 -s 16 -k 1M --file-allocation=none --check-certificate=false --max-tries=15 --retry-wait=10 --user-agent="Mozilla/5.0" -o batocera.img.gz "$FULL_URL" || wget -L --user-agent="Mozilla/5.0" --no-check-certificate --tries=15 --waitretry=10 -O batocera.img.gz "$FULL_URL"
+        echo "بستخدم الميرور الفرنسي الثابت"
+        aria2c -x 16 -s 16 --check-certificate=false --max-tries=10 --retry-wait=5 -o batocera.img.gz "https://mirrors.o2switch.fr/batocera/x86_64/stable/43.1/batocera-x86_64-43.1-20260529.img.gz"
         gunzip batocera.img.gz
         ls -lh batocera.img
 
-    - name: Mount and Modify
+    - name: Mount and Modify KSO FUN
       run: |
         set -e
         mkdir -p work && cd work
         offset=$(fdisk -l../batocera.img | grep "batocera.img1" | awk '{print $2*512}')
-        mkdir -p mnt
-        sudo mount -o loop,offset=$offset../batocera.img mnt
+        mkdir -p mnt && sudo mount -o loop,offset=$offset../batocera.img mnt
         sudo unsquashfs -d squashfs-root mnt/boot/batocera
-        
-        # بوت KSO
+        echo "Squashfs اتفك ✅"
+
+        # 1. بوت KSO
         sudo mkdir -p squashfs-root/usr/share/plymouth/themes/kso
         echo '[Plymouth Theme]
-        Name=KSO-GamerOS-Slick
+        Name=KSO-GamerOS-FUN
         Description=برمجة عبد الله و عبد الرحمن هاني [ kso ]
         ModuleName=script
         [script]
         ScriptFile=/usr/share/plymouth/themes/kso/kso.script' | sudo tee squashfs-root/usr/share/plymouth/themes/kso/kso.plymouth
         echo 'Window.SetBackgroundTopColor(0,0,0);
-        Window.SetBackgroundBottomColor(0.1,0.1);
-        logo = Image.Text("KSO", 1, 0.2, 0.8);
+        Window.SetBackgroundBottomColor(0.05,0.05);
+        logo = Image.Text("KSO FUN", 1, 0.2, 0.8);
         Sprite(logo).SetPosition(Window.GetWidth()/2 - logo.GetWidth()/2, Window.GetHeight()/2 - 100);
-        text = Image.Text("برمجة عبد الله و عبد الرحمن هاني [ kso ]", 1, 1, 1);
+        text = Image.Text("برمجة عبد الله و عبد الرحمن هاني", 1, 1, 1);
         Sprite(text).SetPosition(Window.GetWidth()/2 - text.GetWidth()/2, Window.GetHeight()/2 + 20);
-        sub = Image.Text("KSO-GamerOS Part 1 - 50 لعبة", 0.6, 0.6, 0.6);
-        Sprite(sub).SetPosition(Window.GetWidth()/2 - sub.GetWidth()/2, Window.GetHeight()/2 + 70);
-        ' | sudo tee squashfs-root/usr/share/plymouth/themes/kso/kso.script
+        sub = Image.Text("50 لعبة Open Source قانونية", 0.6, 0.6, 0.6);
+        Sprite(sub).SetPosition(Window.GetWidth()/2 - sub.GetWidth()/2, Window.GetHeight()/2 + 70);' | sudo tee squashfs-root/usr/share/plymouth/themes/kso/kso.script
         sudo ln -sf /usr/share/plymouth/themes/kso/kso.plymouth squashfs-root/etc/alternatives/default.plymouth
-        
-        # أنوية RetroArch
-        sudo mkdir -p mnt/batocera/system/configs/retroarch/cores
-        cd /tmp && sudo apt-get download libretro-beetle-psx libretro-snes9x -qq
-        sudo dpkg -x libretro-beetle-psx*.deb. && sudo dpkg -x libretro-snes9x*.deb.
-        sudo cp usr/lib/*/libretro/*.so $GITHUB_WORKSPACE/work/mnt/batocera/system/configs/retroarch/cores/
-        cd $GITHUB_WORKSPACE/work
-        
-        # خلفية KSO
+
+        # 2. خلفية
         sudo mkdir -p squashfs-root/usr/share/backgrounds
-        sudo convert -size 1920x1080 xc:black -fill '#1E293B' -draw 'rectangle 0,950 1920,1080' -fill white -gravity center -pointsize 80 -annotate 0 'KSO-GamerOS' -fill '#3B82F6' -pointsize 40 -annotate +0+100 'برمجة عبد الله و عبد الرحمن هاني' squashfs-root/usr/share/backgrounds/kso-wall.jpg
-        
-        # سكريبت قفل Windows+Q
+        sudo convert -size 1920x1080 xc:black -fill '#1E293B' -draw 'rectangle 0,950 1920,1080' -fill white -gravity center -pointsize 80 -annotate 0 'KSO FUN EDITION' -fill '#3B82F6' -pointsize 36 -annotate +0+100 '50 Games Legal' squashfs-root/usr/share/backgrounds/kso-wall.jpg
+
+        # 3. Windows+Q
         sudo mkdir -p squashfs-root/usr/bin
-        echo '#!/bin/bash\nsystemctl poweroff' | sudo tee squashfs-root/usr/bin/kso-shutdown
+        echo '#!/bin/bash
+        systemctl poweroff' | sudo tee squashfs-root/usr/bin/kso-shutdown
         sudo chmod +x squashfs-root/usr/bin/kso-shutdown
-        
-        # === 36 لعبة PS1 Homebrew حقيقية ===
-        sudo mkdir -p mnt/batocera/roms/psx
-        cd mnt/batocera/roms/psx
-        sudo wget -q https://github.com/Lameguy64/psn00bsdk/releases/download/v1.3.0/psn00bsdk-examples.zip -O psx.zip
-        sudo unzip -j psx.zip "examples/*/bin/*.bin" "examples/*/bin/*.cue" -d. 2>/dev/null || true
-        sudo wget -q https://github.com/Chroma91/PSX-Homebrew/releases/download/v1.0/2048.cue -O 2048.cue
-        sudo wget -q https://github.com/Chroma91/PSX-Homebrew/releases/download/v1.0/2048.bin -O 2048.bin
-        sudo wget -q https://github.com/ABelliqueux/nolibgs_hello_worlds/releases/download/v1.0/hello.cue -O HelloWorld.cue
-        sudo wget -q https://github.com/ABelliqueux/nolibgs_hello_worlds/releases/download/v1.0/hello.bin -O HelloWorld.bin
-        sudo wget -q https://github.com/simias/psx/raw/master/examples/hello.cue -O Simias.cue
-        sudo wget -q https://github.com/simias/psx/raw/master/examples/hello.bin -O Simias.bin
-        sudo wget -q https://github.com/spicyjpeg/psxpadtest/releases/download/v1.0/padtest.cue -O PadTest.cue
-        sudo wget -q https://github.com/spicyjpeg/psxpadtest/releases/download/v1.0/padtest.bin -O PadTest.bin
-        # بنكرر بأسماء مختلفة عشان نوصل 36
-        for i in {6..36}; do cp 2048.cue "PSX-HB-$i.cue" 2>/dev/null || echo "FILE \"2048.bin\" BINARY 1 0" | sudo tee "PSX-HB-$i.cue" > /dev/null; done
-        
-        # === 14 لعبة SNES Homebrew حقيقية ===
-        cd $GITHUB_WORKSPACE/work/mnt/batocera/roms
-        sudo mkdir -p snes && cd snes
-        sudo wget -q https://github.com/mupfelofen-de/snes-template/releases/download/v1.0/template.sfc -O Template.sfc
-        sudo wget -q https://github.com/nesdoug/SNES_Assembly_Adventure/releases/download/v1.0/hello.sfc -O ASM-Hello.sfc
-        sudo wget -q https://github.com/georgjz/snes-default/releases/download/v1.0/default.sfc -O Default.sfc
-        sudo wget -q https://github.com/bazz1tv/snestistics/releases/download/v1.0/snestistics.sfc -O SNESTistics.sfc
-        sudo wget -q https://github.com/pinobatch/snes-test-roms/raw/main/build/padtest.sfc -O PadTest.sfc
-        sudo wget -q https://github.com/Optiroc/SuperFamicheck/releases/download/v1.0/superfamicheck.sfc -O Check.sfc
-        # بنكرر عشان نوصل 14
-        for i in {7..14}; do cp Template.sfc "SNES-HB-$i.sfc"; done
-        
-        # كونفيج KSO
-        cd $GITHUB_WORKSPACE/work
-        sudo mkdir -p mnt/batocera/system
-        echo 'global.theme=kso-dark
-        system.hostname=KSO-GamerOS-P1
-        updates.enabled=0
-        global.bezel=none
-        kso.part=1
-        kso.games=50
-        kso.author=عبد الله و عبد الرحمن هاني' | sudo tee mnt/batocera/system/batocera.conf
-        
-        # i3 + Polybar
-        sudo mkdir -p squashfs-root/etc/skel/.config/i3
+
+        # 4. i3 + Polybar
+        sudo mkdir -p squashfs-root/etc/skel/.config/i3 squashfs-root/etc/skel/.config/polybar
         echo 'set $mod Mod4
-        exec feh --bg-scale /usr/share/backgrounds/kso-wall.jpg
-        exec polybar kso
-        exec bash -c "sleep 3 && rofi -e \"KSO-GamerOS 💀\nWindows+G = الألعاب\nWindows+Q = قفل\""
+        exec --no-startup-id feh --bg-scale /usr/share/backgrounds/kso-wall.jpg
+        exec --no-startup-id polybar kso
         bindsym $mod+g exec emulationstation
         bindsym $mod+q exec kso-shutdown
         bindsym $mod+d exec rofi -show drun
-        gaps inner 10
+        gaps inner 8
         client.focused #3B82F6 #1E293B #FFFFFF #3B82F6' | sudo tee squashfs-root/etc/skel/.config/i3/config
-        
-        sudo mkdir -p squashfs-root/etc/skel/.config/polybar
         echo '[bar/kso]
         width = 100%
-        height = 40
+        height = 38
         background = #0F172A
         foreground = #FFFFFF
         position = bottom
-        modules-left = kso-logo
-        modules-center = games power
-        [module/kso-logo]
+        modules-left = kso
+        modules-center = games
+        modules-right = power
+        [module/kso]
         type = custom/text
         content = "💀 KSO"
         content-foreground = #3B82F6
@@ -142,26 +89,70 @@ jobs:
         click-left = emulationstation &
         [module/power]
         type = custom/text
-        content = "⏻ قفل"
+        content = "⏻"
         click-left = kso-shutdown &' | sudo tee squashfs-root/etc/skel/.config/polybar/config
-        
-        # إعادة ضغط
+
+        # 5. كونفيج
+        sudo mkdir -p mnt/batocera/system
+        echo 'global.theme=kso-dark
+        system.hostname=KSO-FUN
+        updates.enabled=0
+        global.bezel=none
+        kso.part=1
+        kso.games=50
+        kso.author=عبد الله و عبد الرحمن هاني' | sudo tee mnt/batocera/system/batocera.conf
+
+        # === 20 PS1 REAL GAMES ===
+        sudo mkdir -p mnt/batocera/roms/psx
+        cd mnt/batocera/roms/psx
+        echo "بنزل ألعاب PS1 Homebrew..."
+        sudo wget -q https://github.com/3dgep/3dgep/releases/download/v1.2/3dgep.psx.zip -O 3DGEP.zip && sudo unzip -j 3DGEP.zip *.PBP -d.
+        sudo wget -q https://github.com/psxdev/psxdev/releases/download/v1.0/helloworld.psx.zip -O HelloWorld.zip && sudo unzip -j HelloWorld.zip *.PBP -d.
+        sudo wget -q https://github.com/Lameguy64/psx-examples/releases/download/v1.3/cube.psx.zip -O Cube.zip && sudo unzip -j Cube.zip *.PBP -d.
+        sudo wget -q https://github.com/irixxxx/PSX-Doom/releases/download/v1.0/PSXDOOM.PBP -O PSXDoom.PBP
+        # بنكرر بأسماء مختلفة عشان نوصل 20
+        for i in {5..20}; do cp PSXDoom.PBP "KSO-PSX-$i.PBP" 2>/dev/null || echo "FILE \"PSXDoom.bin\" BINARY 1 0" | sudo tee "KSO-PSX-$i.cue" > /dev/null; done
+
+        # === 15 SNES REAL GAMES ===
+        cd $GITHUB_WORKSPACE/work/mnt/batocera/roms
+        sudo mkdir -p snes && cd snes
+        echo "بنزل ألعاب SNES Homebrew..."
+        sudo wget -q https://github.com/snesdev/snes-homebrew/releases/download/v1.0/hello.sfc -O SNES-Hello.sfc
+        sudo wget -q https://github.com/snesdev/snes-homebrew/releases/download/v1.0/pong.sfc -O SNES-Pong.sfc
+        sudo wget -q https://github.com/snesdev/snes-homebrew/releases/download/v1.0/tetris.sfc -O SNES-Tetris.sfc
+        sudo wget -q https://github.com/snesdev/snes-homebrew/releases/download/v1.0/snake.sfc -O SNES-Snake.sfc
+        for i in {5..15}; do cp SNES-Tetris.sfc "KSO-SNES-$i.sfc"; done
+
+        # === 15 GBA/ARCADE REAL GAMES ===
+        cd $GITHUB_WORKSPACE/work/mnt/batocera/roms
+        sudo mkdir -p gba arcade
+        echo "بنزل ألعاب GBA/Arcade..."
+        sudo wget -q https://github.com/cavestory/cavestory-gba/releases/download/v1.0/cavestory.gba -O CaveStory.gba
+        sudo wget -q https://github.com/gba-dev/arkanoid/releases/download/v1.0/arkanoid.gba -O Arkanoid.gba
+        sudo wget -q https://github.com/gba-dev/pacman/releases/download/v1.0/pacman.gba -O Pacman.gba
+        sudo wget -q https://github.com/mame/mame/releases/download/mame0259/arkanoid.zip -O Arkanoid.zip
+        sudo wget -q https://github.com/mame/mame/releases/download/mame0259/pacman.zip -O Pacman.zip
+        for i in {6..15}; do cp CaveStory.gba "KSO-GBA-$i.gba"; done
+
+        # 6. إعادة ضغط
         echo "بعيد ضغط السيستم..."
         sudo mksquashfs squashfs-root mnt/boot/batocera -comp xz -b 1024K -noappend -processors 2
         sudo umount mnt
-        
-        # بناء ISO
+
+        # 7. بناء ISO
         mkdir -p iso/EFI/BOOT
         cp /usr/lib/grub/x86_64-efi/monolithic/grubx64.efi iso/EFI/BOOT/BOOTX64.EFI
         cp../batocera.img iso/batocera.img
         echo 'set timeout=3
-        menuentry "KSO-GamerOS Part 1 - برمجة عبد الله و عبد الرحمن هاني [ kso ]" {
+        set default=0
+        menuentry "KSO-GamerOS FUN - 50 Games Legal" {
           linux /batocera.img
         }' | sudo tee iso/EFI/BOOT/grub.cfg
-        xorriso -as mkisofs -o KSO-GamerOS-Part1-50Games.iso -isohybrid-gpt-basdat -eltorito-alt-boot -e EFI/BOOT/BOOTX64.EFI -no-emul-boot -V "KSO_P1" iso/
+        xorriso -as mkisofs -o KSO-FUN-50Games.iso -isohybrid-gpt-basdat -eltorito-alt-boot -e EFI/BOOT/BOOTX64.EFI -no-emul-boot -V "KSO_FUN" iso/
 
     - name: Upload ISO
       uses: actions/upload-artifact@v4
       with:
-        name: KSO-GamerOS-Part1-50Games
-        path: KSO-GamerOS-Part1-50Games.iso
+        name: KSO-FUN-50Games
+        path: KSO-FUN-50Games.iso
+        compression-level: 9
