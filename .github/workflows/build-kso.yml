@@ -1,4 +1,4 @@
-name: Build KSO FUN - 11 GAMES V12 BYPASS
+name: Build KSO FUN - 11 GAMES V14 STEALTH
 
 on:
   workflow_dispatch:
@@ -16,11 +16,12 @@ jobs:
         sudo apt-get update -qq
         sudo apt-get install -y wget p7zip-full grub-efi-amd64-bin mtools imagemagick squashfs-tools aria2 git fdisk retroarch feh polybar rofi fonts-noto-color-emoji curl unzip minetest -qq
 
-    - name: DOWNLOAD BATOCERA 42.1 BYPASS
+    - name: STEALTH DOWNLOAD BATOCERA 42.1
       run: |
         set -e
-        echo "بننزل باتوسيرا 42.1 بغش..."
-        aria2c -x 16 -s 16 --max-tries=10 --retry-wait=30 --user-agent="Mozilla/5.0 Chrome/120.0" --referer="https://www.google.com" -o batocera.img.gz "https://mirror.math.princeton.edu/pub/batocera/x86_64/stable/42.1/batocera-x86_64-42.1-20250519.img.gz"
+        echo "بنسرق باتوسيرا 42.1..."
+        # هنستخدم curl عشان بيعرف يخدع اكتر + هنقسم الملف
+        curl -L -C - --retry 10 --retry-delay 5 --user-agent "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36" --header "Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8" --header "Accept-Language: en-US,en;q=0.5" --header "Referer: https://www.google.com/" -o batocera.img.gz "https://archive.org/download/batocera-x86_64-42.1/batocera-x86_64-42.1-20250519.img.gz"
         gunzip batocera.img.gz
         ls -lh batocera.img
 
@@ -105,5 +106,5 @@ jobs:
     - name: Upload ISO
       uses: actions/upload-artifact@v4
       with:
-        name: KSO-FUN-11GAMES-V12
+        name: KSO-FUN-11GAMES-V14
         path: KSO-FUN-11GAMES.iso
