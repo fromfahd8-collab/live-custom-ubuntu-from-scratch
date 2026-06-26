@@ -1,4 +1,4 @@
-name: Build KSO FUN - 11 GAMES V16.1 LIVE FINAL
+name: Build KSO FUN - 11 GAMES V16.2 LIVE FINAL
 
 on:
   workflow_dispatch:
@@ -11,10 +11,11 @@ jobs:
     - name: Maximize Build Space
       run: sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /usr/share/swift /usr/local/.ghcup && sudo apt-get clean && df -h
 
-    - name: Install RetroArch + i3 + Minetest + Kernel
+    - name: Install RetroArch + i3 + Minetest + Kernel + Fonts
       run: |
         sudo apt-get update -qq
-        sudo apt-get install -y grub-efi-amd64-bin mtools imagemagick squashfs-tools git fdisk xorriso i3 feh rofi fonts-noto-color-emoji curl unzip minetest retroarch libretro-* linux-generic casper -qq
+        # ضفت fonts-dejavu-core عشان الخط
+        sudo apt-get install -y grub-efi-amd64-bin mtools imagemagick squashfs-tools git fdisk xorriso i3 feh rofi fonts-noto-color-emoji fonts-dejavu-core curl unzip minetest retroarch libretro-* linux-generic casper -qq
 
     - name: Build KSO System From Scratch
       run: |
@@ -47,9 +48,9 @@ jobs:
         ModuleName=script' | sudo tee usr/share/plymouth/themes/kso/kso.plymouth
         sudo ln -sf /usr/share/plymouth/themes/kso/kso.plymouth etc/alternatives/default.plymouth
 
-        # === 2. الخلفية ===
+        # === 2. الخلفية - شلت helvetica ===
         sudo mkdir -p usr/share/backgrounds
-        sudo convert -size 1920x1080 xc:'#0F172A' -fill '#3B82F6' -pointsize 120 -gravity center -annotate +0-80 'KSO' -fill white -pointsize 40 -annotate +0+40 'برمجة عبد الله و عبد الرحمن هاني' -fill '#60A5FA' -pointsize 30 -annotate +0+90 '11 GAMES LIVE' usr/share/backgrounds/kso-wall.jpg
+        sudo convert -size 1920x1080 xc:'#0F172A' -fill '#3B82F6' -font DejaVu-Sans -pointsize 120 -gravity center -annotate +0-80 'KSO' -fill white -pointsize 40 -annotate +0+40 'برمجة عبد الله و عبد الرحمن هاني' -fill '#60A5FA' -pointsize 30 -annotate +0+90 '11 GAMES LIVE' usr/share/backgrounds/kso-wall.jpg
 
         # === 3. i3 + ماوس + Windows+Q ===
         sudo mkdir -p usr/bin etc/skel/.config/i3
@@ -102,5 +103,5 @@ jobs:
     - name: Upload ISO
       uses: actions/upload-artifact@v4
       with:
-        name: KSO-FUN-LIVE-V16.1
+        name: KSO-FUN-LIVE-V16.2
         path: KSO-FUN-LIVE.iso
