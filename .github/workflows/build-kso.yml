@@ -1,4 +1,4 @@
-name: Build KSO FUN - AUTO SCRAPE + 50 Games ULTRA
+name: Build KSO FUN - 10 GAMES + MINETEST 8GB RAM
 
 on:
   workflow_dispatch:
@@ -14,33 +14,21 @@ jobs:
     - name: Install Dependencies
       run: |
         sudo apt-get update -qq
-        sudo apt-get install -y wget p7zip-full grub-efi-amd64-bin mtools imagemagick squashfs-tools aria2 git fdisk retroarch feh polybar rofi fonts-noto-color-emoji curl unzip minetest html-xml-utils -qq
+        sudo apt-get install -y wget p7zip-full grub-efi-amd64-bin mtools imagemagick squashfs-tools aria2 git fdisk retroarch feh polybar rofi fonts-noto-color-emoji curl unzip html-xml-utils minetest -qq
 
     - name: AUTO FIND & DOWNLOAD LATEST BATOCERA
       run: |
         set -e
-        echo "بنقلب على اخر نسخة x86_64 من الموقع الرسمي..."
-        
-        # 1. نحاول نجيب اللينك من الموقع الرسمي
+        echo "بنقلب على اخر نسخة x86_64..."
         BATOCERA_URL=$(curl -s https://batocera.org/download | hxselect -s '\n' 'a[href*="x86_64"]' | grep '.img.gz' | head -n 1)
-        
-        if [ -n "$BATOCERA_URL" ]; then
-          echo "لقيته: $BATOCERA_URL"
-          aria2c -x 8 -s 8 --max-tries=5 --retry-wait=20 -o batocera.img.gz "$BATOCERA_URL"
-        fi
-        
-        # 2. لو الموقع وقع, نقلب على Archive.org اخر نسخة
-        if [ ! -f batocera.img.gz ]; then
-          echo "الموقع الرسمي وقع, بنجرب Archive.org..."
+        if [ -n "$BATOCERA_URL" ]; then aria2c -x 8 -s 8 --max-tries=5 --retry-wait=20 -o batocera.img.gz "$BATOCERA_URL"; fi
+        if [! -f batocera.img.gz ]; then
           LATEST_ARCHIVE=$(curl -s https://archive.org/download/batocera-x86_64/ | hxselect -s '\n' 'a' | grep 'img.gz' | sort -V | tail -n 1)
           aria2c -x 8 -s 8 --max-tries=5 --retry-wait=20 -o batocera.img.gz "https://archive.org/download/batocera-x86_64/$LATEST_ARCHIVE"
         fi
-        
-        if [ ! -f batocera.img.gz ]; then echo "كل المصادر وقعت"; exit 1; fi
         gunzip batocera.img.gz
-        ls -lh batocera.img
 
-    - name: Mount and Modify KSO FUN ULTRA
+    - name: Mount and Modify KSO FUN LIGHT
       run: |
         set -e
         mkdir -p work && cd work
@@ -73,58 +61,75 @@ jobs:
         ModuleName=script' | sudo tee squashfs-root/usr/share/plymouth/themes/kso/kso.plymouth
         sudo ln -sf /usr/share/plymouth/themes/kso/kso.plymouth squashfs-root/etc/alternatives/default.plymouth
 
-        # === 2. خلفية Gaming RGB ===
+        # === 2. خلفية ===
         sudo mkdir -p squashfs-root/usr/share/backgrounds
-        sudo convert -size 1920x1080 gradient:'#0F172A'-'#1E293B' -fill '#3B82F6' -pointsize 120 -gravity center -annotate +0-80 'KSO' -fill white -pointsize 40 -annotate +0+40 'برمجة عبد الله و عبد الرحمن هاني' -fill '#60A5FA' -pointsize 30 -annotate +0+90 '50 GAMES + MINETEST' squashfs-root/usr/share/backgrounds/kso-wall.jpg
+        sudo convert -size 1920x1080 xc:'#0F172A' -fill '#3B82F6' -pointsize 120 -gravity center -annotate +0-80 'KSO' -fill white -pointsize 40 -annotate +0+40 'برمجة عبد الله و عبد الرحمن هاني' -fill '#60A5FA' -pointsize 30 -annotate +0+90 '10 GAMES + MINETEST' squashfs-root/usr/share/backgrounds/kso-wall.jpg
 
-        # === 3. i3 + ماوس + Windows+Q ===
-        sudo mkdir -p squashfs-root/usr/bin squashfs-root/etc/skel/.config/i3 squashfs-root/etc/skel/.config/polybar
+        # === 3. i3 خفيف + ماوس + Windows+Q ===
+        sudo mkdir -p squashfs-root/usr/bin squashfs-root/etc/skel/.config/i3
         echo '#!/bin/bash
         systemctl poweroff' | sudo tee squashfs-root/usr/bin/kso-shutdown && sudo chmod +x squashfs-root/usr/bin/kso-shutdown
         echo 'set $mod Mod4
         exec --no-startup-id feh --bg-scale /usr/share/backgrounds/kso-wall.jpg
-        exec --no-startup-id polybar kso
         exec --no-startup-id xsetroot -cursor_name left_ptr
         bindsym $mod+g exec emulationstation
         bindsym $mod+q exec kso-shutdown
         bindsym $mod+d exec rofi -show drun -theme gruvbox-dark
         mouse mod1 button1 move
-        mouse mod1 button3 resize
-        gaps inner 12
+        gaps inner 8
         client.focused #3B82F6 #1E293B #FFFFFF #3B82F6' | sudo tee squashfs-root/etc/skel/.config/i3/config
+
+        # === 4. Minetest باعدادات خفيفة للـ 8 رام ===
+        sudo mkdir -p mnt/batocera/roms/ports squashfs-root/etc/skel/.minetest
+        echo '[main]
+        video_driver = opengl
+        enable_shaders = false
+        enable_particles = false
+        enable_clouds = false
+        view_bobbing_amount = 0.0
+        fps_max = 60
+        render_distance = 50' | sudo tee squashfs-root/etc/skel/.minetest/minetest.conf
         
-        # === 4. Minetest ===
-        sudo mkdir -p mnt/batocera/roms/ports
         echo '#!/bin/bash
         minetest' | sudo tee mnt/batocera/roms/ports/Minetest.sh
         sudo chmod +x mnt/batocera/roms/ports/Minetest.sh
 
-        # === 5. 50 لعبة حقيقية ===
+        # === 5. 10 العاب مختلفة حقيقية ===
         sudo mkdir -p mnt/batocera/roms/psx mnt/batocera/roms/snes mnt/batocera/roms/gba mnt/batocera/roms/arcade
         cd mnt/batocera/roms
-        wget -q --tries=3 https://archive.org/download/PSX-Homebrew-Demos/PSXDoom.PBP -O psx-base.PBP
-        wget -q --tries=3 https://archive.org/download/snes-homebrew/SNES-Tetris.sfc -O snes-base.sfc 
-        wget -q --tries=3 https://archive.org/download/gba-homebrew/CaveStory.gba -O gba-base.gba
-        cd psx && for i in {1..20}; do cp../psx-base.PBP "KSO-PSX-$i.PBP"; done
-        cd../snes && for i in {1..15}; do cp../snes-base.sfc "KSO-SNES-$i.sfc"; done
-        cd../gba && for i in {1..10}; do cp../gba-base.gba "KSO-GBA-$i.gba"; done
-        cd../arcade && wget -q --tries=3 https://archive.org/download/mame-0.259-roms/arkanoid.zip -O Arkanoid.zip
-        for i in {1..5}; do cp Arkanoid.zip "KSO-ARC-$i.zip"; done
+        
+        cd psx
+        wget -q --tries=3 https://archive.org/download/PSX-Homebrew-Demos/PSXDoom.PBP -O Doom.PBP
+        wget -q --tries=3 https://archive.org/download/psx-homebrew/DukeNukem.PBP -O Duke.PBP 
+        wget -q --tries=3 https://archive.org/download/psx-homebrew/Wolf3D.PBP -O Wolf3D.PBP
+        
+        cd../snes
+        wget -q --tries=3 https://archive.org/download/snes-homebrew/SNES-Tetris.sfc -O Tetris.sfc
+        wget -q --tries=3 https://archive.org/download/snes-homebrew/SuperMarioWorld.sfc -O Mario.sfc
+        wget -q --tries=3 https://archive.org/download/snes-homebrew/StreetFighter2.sfc -O SF2.sfc
+        
+        cd../gba
+        wget -q --tries=3 https://archive.org/download/gba-homebrew/CaveStory.gba -O CaveStory.gba
+        wget -q --tries=3 https://archive.org/download/gba-homebrew/2004-mine.gba -O Mine.gba
+        
+        cd../arcade
+        wget -q --tries=3 https://archive.org/download/mame-0.259-roms/arkanoid.zip -O Arkanoid.zip
+        wget -q --tries=3 https://archive.org/download/mame-0.259-roms/pacman.zip -O Pacman.zip
 
-        # === 6. بناء ISO ===
-        sudo mksquashfs squashfs-root mnt/boot/batocera -comp xz -b 1024K -noappend -processors 2
+        # === 6. بناء ISO خفيف ===
+        sudo mksquashfs squashfs-root mnt/boot/batocera -comp xz -Xbcj x86 -b 1024K -noappend -processors 2
         sudo umount mnt
         mkdir -p iso/EFI/BOOT
         cp /usr/lib/grub/x86_64-efi/monolithic/grubx64.efi iso/EFI/BOOT/BOOTX64.EFI
         cp../batocera.img iso/batocera.img
         echo 'set timeout=3
-        menuentry "KSO-GamerOS FUN ULTRA" {
+        menuentry "KSO-GamerOS 10 GAMES + MINETEST" {
           linux /batocera.img
         }' | sudo tee iso/EFI/BOOT/grub.cfg
-        xorriso -as mkisofs -o KSO-FUN-ULTRA.iso -isohybrid-gpt-basdat -eltorito-alt-boot -e EFI/BOOT/BOOTX64.EFI -no-emul-boot -V "KSO_FUN" iso/
+        xorriso -as mkisofs -o KSO-FUN-11GAMES.iso -isohybrid-gpt-basdat -eltorito-alt-boot -e EFI/BOOT/BOOTX64.EFI -no-emul-boot -V "KSO_11" iso/
 
     - name: Upload ISO
       uses: actions/upload-artifact@v4
       with:
-        name: KSO-FUN-ULTRA-AUTO
-        path: KSO-FUN-ULTRA.iso
+        name: KSO-FUN-11GAMES-8GBRAM
+        path: KSO-FUN-11GAMES.iso
