@@ -1,4 +1,4 @@
-name: Build KSO FUN - 50 Games ULTRA
+name: Build KSO FUN - AUTO SCRAPE + 50 Games ULTRA
 
 on:
   workflow_dispatch:
@@ -14,15 +14,31 @@ jobs:
     - name: Install Dependencies
       run: |
         sudo apt-get update -qq
-        sudo apt-get install -y wget p7zip-full grub-efi-amd64-bin mtools imagemagick squashfs-tools aria2 git fdisk retroarch feh polybar rofi fonts-noto-color-emoji curl unzip minetest -qq
+        sudo apt-get install -y wget p7zip-full grub-efi-amd64-bin mtools imagemagick squashfs-tools aria2 git fdisk retroarch feh polybar rofi fonts-noto-color-emoji curl unzip minetest html-xml-utils -qq
 
-    - name: Download Batocera 43.2 MULTI-MIRROR
+    - name: AUTO FIND & DOWNLOAD LATEST BATOCERA
       run: |
-        set +e
-        aria2c -x 8 -s 8 --max-tries=5 --retry-wait=20 -o batocera.img.gz "https://archive.org/download/batocera-x86_64-43.2/batocera-x86_64-43.2-20260529.img.gz" || \
-        aria2c -x 8 -s 8 --max-tries=5 --retry-wait=20 -o batocera.img.gz "https://batocera.io/download/x86_64/stable/43.2/batocera-x86_64-43.2-20260529.img.gz"
         set -e
+        echo "بنقلب على اخر نسخة x86_64 من الموقع الرسمي..."
+        
+        # 1. نحاول نجيب اللينك من الموقع الرسمي
+        BATOCERA_URL=$(curl -s https://batocera.org/download | hxselect -s '\n' 'a[href*="x86_64"]' | grep '.img.gz' | head -n 1)
+        
+        if [ -n "$BATOCERA_URL" ]; then
+          echo "لقيته: $BATOCERA_URL"
+          aria2c -x 8 -s 8 --max-tries=5 --retry-wait=20 -o batocera.img.gz "$BATOCERA_URL"
+        fi
+        
+        # 2. لو الموقع وقع, نقلب على Archive.org اخر نسخة
+        if [ ! -f batocera.img.gz ]; then
+          echo "الموقع الرسمي وقع, بنجرب Archive.org..."
+          LATEST_ARCHIVE=$(curl -s https://archive.org/download/batocera-x86_64/ | hxselect -s '\n' 'a' | grep 'img.gz' | sort -V | tail -n 1)
+          aria2c -x 8 -s 8 --max-tries=5 --retry-wait=20 -o batocera.img.gz "https://archive.org/download/batocera-x86_64/$LATEST_ARCHIVE"
+        fi
+        
+        if [ ! -f batocera.img.gz ]; then echo "كل المصادر وقعت"; exit 1; fi
         gunzip batocera.img.gz
+        ls -lh batocera.img
 
     - name: Mount and Modify KSO FUN ULTRA
       run: |
@@ -32,7 +48,7 @@ jobs:
         mkdir -p mnt && sudo mount -o loop,offset=$offset../batocera.img mnt
         sudo unsquashfs -d squashfs-root mnt/boot/batocera
 
-        # === 1. البوت المتحرك الشكل - KSO EDITION ===
+        # === 1. البوت المتحرك - KSO EDITION ===
         sudo mkdir -p squashfs-root/usr/share/plymouth/themes/kso
         echo '[Plymouth Theme]
         Name=KSO-GamerOS-FUN
@@ -42,84 +58,41 @@ jobs:
         fun(0.01);
         Window.SetBackgroundTopColor(0.05, 0, 0.2);
         Window.SetBackgroundBottomColor(0, 0, 0);
-        
         kso_logo = Image.Text("KSO", 1, 0.1, 0.8);
         kso_logo_sprite = Sprite(kso_logo);
         kso_logo_sprite.SetX(Window.GetWidth()/2 - kso_logo.GetWidth()/2);
         kso_logo_sprite.SetY(Window.GetHeight()/2 - 150);
-        
         kso_text = Image.Text("برمجة عبد الله و عبد الرحمن هاني", 1, 1, 1);
         kso_text_sprite = Sprite(kso_text);
         kso_text_sprite.SetX(Window.GetWidth()/2 - kso_text.GetWidth()/2);
         kso_text_sprite.SetY(Window.GetHeight()/2 + 20);
-        
-        sub_text = Image.Text("50 GAMES EDITION", 0.6, 0.6, 0.6);
-        sub_sprite = Sprite(sub_text);
-        sub_sprite.SetX(Window.GetWidth()/2 - sub_text.GetWidth()/2);
-        sub_sprite.SetY(Window.GetHeight()/2 + 70);
-        
-        # لعب: نبض للوجو
-        kso_alpha = 0.5;
-        kso_dir = 0.02;
-        kso_logo_sprite.SetOpacity(kso_alpha);
-        
-        kso.draw_bg = fun() {
-            kso_alpha = kso_alpha + kso_dir;
-            if(kso_alpha > 1.0 || kso_alpha < 0.3) {
-                kso_dir = -kso_dir;
-            }
-            kso_logo_sprite.SetOpacity(kso_alpha);
-        };' | sudo tee squashfs-root/usr/share/plymouth/themes/kso/kso.script
-        
+        kso_alpha = 0.5; kso_dir = 0.02; kso_logo_sprite.SetOpacity(kso_alpha);
+        kso.draw_bg = fun() { kso_alpha = kso_alpha + kso_dir; if(kso_alpha > 1.0 || kso_alpha < 0.3) { kso_dir = -kso_dir; } kso_logo_sprite.SetOpacity(kso_alpha); };' | sudo tee squashfs-root/usr/share/plymouth/themes/kso/kso.script
         echo '[Plymouth Theme]
         Name=KSO-GamerOS-FUN
-        Description=برمجة عبد الله و عبد الرحمن هاني [ kso ]
         ModuleName=script' | sudo tee squashfs-root/usr/share/plymouth/themes/kso/kso.plymouth
         sudo ln -sf /usr/share/plymouth/themes/kso/kso.plymouth squashfs-root/etc/alternatives/default.plymouth
 
-        # === 2. خلفية شيك Gaming RGB ===
+        # === 2. خلفية Gaming RGB ===
         sudo mkdir -p squashfs-root/usr/share/backgrounds
-        sudo convert -size 1920x1080 gradient:'#0F172A'-'#1E293B' \
-        -fill '#3B82F6' -pointsize 120 -gravity center -annotate +0-80 'KSO' \
-        -fill white -pointsize 40 -annotate +0+40 'برمجة عبد الله و عبد الرحمن هاني' \
-        -fill '#60A5FA' -pointsize 30 -annotate +0+90 '50 GAMES + MINETEST' \
-        squashfs-root/usr/share/backgrounds/kso-wall.jpg
+        sudo convert -size 1920x1080 gradient:'#0F172A'-'#1E293B' -fill '#3B82F6' -pointsize 120 -gravity center -annotate +0-80 'KSO' -fill white -pointsize 40 -annotate +0+40 'برمجة عبد الله و عبد الرحمن هاني' -fill '#60A5FA' -pointsize 30 -annotate +0+90 '50 GAMES + MINETEST' squashfs-root/usr/share/backgrounds/kso-wall.jpg
 
-        # === 3. Windows+Q + i3 شيك ===
+        # === 3. i3 + ماوس + Windows+Q ===
         sudo mkdir -p squashfs-root/usr/bin squashfs-root/etc/skel/.config/i3 squashfs-root/etc/skel/.config/polybar
         echo '#!/bin/bash
         systemctl poweroff' | sudo tee squashfs-root/usr/bin/kso-shutdown && sudo chmod +x squashfs-root/usr/bin/kso-shutdown
-        
         echo 'set $mod Mod4
         exec --no-startup-id feh --bg-scale /usr/share/backgrounds/kso-wall.jpg
         exec --no-startup-id polybar kso
+        exec --no-startup-id xsetroot -cursor_name left_ptr
         bindsym $mod+g exec emulationstation
         bindsym $mod+q exec kso-shutdown
         bindsym $mod+d exec rofi -show drun -theme gruvbox-dark
+        mouse mod1 button1 move
+        mouse mod1 button3 resize
         gaps inner 12
         client.focused #3B82F6 #1E293B #FFFFFF #3B82F6' | sudo tee squashfs-root/etc/skel/.config/i3/config
         
-        echo '[bar/kso]
-        width = 100%
-        height = 40
-        background = #0F172ADD
-        foreground = #FFFFFF
-        font-0 = "Noto Sans Bold:size=11"
-        modules-left = kso
-        modules-center = games
-        modules-right = power
-        [module/kso]
-        type = custom/text
-        content = "💀 KSO"
-        content-foreground = #3B82F6
-        [module/games]
-        type = custom/text
-        content = "🎮 50 GAMES"
-        [module/power]
-        type = custom/text
-        content = "⏻"
-        click-left = kso-shutdown &' | sudo tee squashfs-root/etc/skel/.config/polybar/config
-
         # === 4. Minetest ===
         sudo mkdir -p mnt/batocera/roms/ports
         echo '#!/bin/bash
@@ -153,5 +126,5 @@ jobs:
     - name: Upload ISO
       uses: actions/upload-artifact@v4
       with:
-        name: KSO-FUN-ULTRA
+        name: KSO-FUN-ULTRA-AUTO
         path: KSO-FUN-ULTRA.iso
