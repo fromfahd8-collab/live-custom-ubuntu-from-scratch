@@ -1,4 +1,4 @@
-name: Build KSO FUN - 11 GAMES V16 LIVE FINAL
+name: Build KSO FUN - 11 GAMES V16.1 LIVE FINAL
 
 on:
   workflow_dispatch:
@@ -14,7 +14,6 @@ jobs:
     - name: Install RetroArch + i3 + Minetest + Kernel
       run: |
         sudo apt-get update -qq
-        # محاكي واحد يشغل كله + خفيف
         sudo apt-get install -y grub-efi-amd64-bin mtools imagemagick squashfs-tools git fdisk xorriso i3 feh rofi fonts-noto-color-emoji curl unzip minetest retroarch libretro-* linux-generic casper -qq
 
     - name: Build KSO System From Scratch
@@ -23,8 +22,8 @@ jobs:
         mkdir -p rootfs
         cd rootfs
         
-        # === 1. البوت KSO ===
-        sudo mkdir -p usr/share/plymouth/themes/kso
+        # === 1. البوت KSO - صلحت العلامات ===
+        sudo mkdir -p usr/share/plymouth/themes/kso etc/alternatives
         echo '[Plymouth Theme]
         Name=KSO-GamerOS-FUN
         Description=برمجة عبد الله و عبد الرحمن هاني [ kso ]
@@ -76,7 +75,7 @@ jobs:
         fps_max = 60
         render_distance = 50' | sudo tee etc/skel/.minetest/minetest.conf
 
-        # === 5. الـ 11 لعبة اللي اتفقنا عليهم ===
+        # === 5. الـ 11 لعبة ===
         sudo mkdir -p usr/share/games/kso/psx usr/share/games/kso/snes usr/share/games/kso/gba usr/share/games/kso/arcade
         cd usr/share/games/kso
         cd psx && wget -q --tries=3 https://archive.org/download/PSX-Homebrew-Demos/PSXDoom.PBP -O Doom.PBP && wget -q --tries=3 https://archive.org/download/psx-homebrew/DukeNukem.PBP -O Duke.PBP && wget -q --tries=3 https://archive.org/download/psx-homebrew/Wolf3D.PBP -O Wolf3D.PBP
@@ -103,5 +102,5 @@ jobs:
     - name: Upload ISO
       uses: actions/upload-artifact@v4
       with:
-        name: KSO-FUN-LIVE-V16
+        name: KSO-FUN-LIVE-V16.1
         path: KSO-FUN-LIVE.iso
