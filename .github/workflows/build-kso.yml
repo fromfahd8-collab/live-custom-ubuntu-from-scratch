@@ -1,4 +1,4 @@
-name: Build KSO FUN - 11 GAMES DIRECT LINK V11
+name: Build KSO FUN - 11 GAMES V12 BYPASS
 
 on:
   workflow_dispatch:
@@ -16,11 +16,11 @@ jobs:
         sudo apt-get update -qq
         sudo apt-get install -y wget p7zip-full grub-efi-amd64-bin mtools imagemagick squashfs-tools aria2 git fdisk retroarch feh polybar rofi fonts-noto-color-emoji curl unzip minetest -qq
 
-    - name: DOWNLOAD BATOCERA 42.1 DIRECT
+    - name: DOWNLOAD BATOCERA 42.1 BYPASS
       run: |
         set -e
-        echo "بننزل باتوسيرا 42.1 مباشر من Archive.org..."
-        aria2c -x 16 -s 16 --max-tries=10 --retry-wait=30 -o batocera.img.gz "https://archive.org/download/batocera-x86_64-42.1/batocera-x86_64-42.1-20250519.img.gz"
+        echo "بننزل باتوسيرا 42.1 بغش..."
+        aria2c -x 16 -s 16 --max-tries=10 --retry-wait=30 --user-agent="Mozilla/5.0 Chrome/120.0" --referer="https://www.google.com" -o batocera.img.gz "https://mirror.math.princeton.edu/pub/batocera/x86_64/stable/42.1/batocera-x86_64-42.1-20250519.img.gz"
         gunzip batocera.img.gz
         ls -lh batocera.img
 
@@ -32,7 +32,6 @@ jobs:
         mkdir -p mnt && sudo mount -o loop,offset=$offset ../batocera.img mnt
         sudo unsquashfs -d squashfs-root mnt/boot/batocera
 
-        # === 1. البوت المتحرك - KSO EDITION ===
         sudo mkdir -p squashfs-root/usr/share/plymouth/themes/kso
         echo '[Plymouth Theme]
         Name=KSO-GamerOS-FUN
@@ -57,11 +56,9 @@ jobs:
         ModuleName=script' | sudo tee squashfs-root/usr/share/plymouth/themes/kso/kso.plymouth
         sudo ln -sf /usr/share/plymouth/themes/kso/kso.plymouth squashfs-root/etc/alternatives/default.plymouth
 
-        # === 2. خلفية ===
         sudo mkdir -p squashfs-root/usr/share/backgrounds
         sudo convert -size 1920x1080 xc:'#0F172A' -fill '#3B82F6' -pointsize 120 -gravity center -annotate +0-80 'KSO' -fill white -pointsize 40 -annotate +0+40 'برمجة عبد الله و عبد الرحمن هاني' -fill '#60A5FA' -pointsize 30 -annotate +0+90 '11 GAMES + MINETEST' squashfs-root/usr/share/backgrounds/kso-wall.jpg
 
-        # === 3. i3 خفيف + ماوس + Windows+Q ===
         sudo mkdir -p squashfs-root/usr/bin squashfs-root/etc/skel/.config/i3
         echo '#!/bin/bash
         systemctl poweroff' | sudo tee squashfs-root/usr/bin/kso-shutdown && sudo chmod +x squashfs-root/usr/bin/kso-shutdown
@@ -75,7 +72,6 @@ jobs:
         gaps inner 8
         client.focused #3B82F6 #1E293B #FFFFFF #3B82F6' | sudo tee squashfs-root/etc/skel/.config/i3/config
 
-        # === 4. Minetest باعدادات خفيفة ===
         sudo mkdir -p mnt/batocera/roms/ports squashfs-root/etc/skel/.minetest
         echo 'video_driver = opengl
         enable_shaders = false
@@ -88,29 +84,13 @@ jobs:
         minetest' | sudo tee mnt/batocera/roms/ports/Minetest.sh
         sudo chmod +x mnt/batocera/roms/ports/Minetest.sh
 
-        # === 5. 10 العاب مختلفة حقيقية ===
         sudo mkdir -p mnt/batocera/roms/psx mnt/batocera/roms/snes mnt/batocera/roms/gba mnt/batocera/roms/arcade
         cd mnt/batocera/roms
-        
-        cd psx
-        wget -q --tries=3 https://archive.org/download/PSX-Homebrew-Demos/PSXDoom.PBP -O Doom.PBP
-        wget -q --tries=3 https://archive.org/download/psx-homebrew/DukeNukem.PBP -O Duke.PBP 
-        wget -q --tries=3 https://archive.org/download/psx-homebrew/Wolf3D.PBP -O Wolf3D.PBP
-        
-        cd ../snes
-        wget -q --tries=3 https://archive.org/download/snes-homebrew/SNES-Tetris.sfc -O Tetris.sfc
-        wget -q --tries=3 https://archive.org/download/snes-homebrew/SuperMarioWorld.sfc -O Mario.sfc
-        wget -q --tries=3 https://archive.org/download/snes-homebrew/StreetFighter2.sfc -O SF2.sfc
-        
-        cd ../gba
-        wget -q --tries=3 https://archive.org/download/gba-homebrew/CaveStory.gba -O CaveStory.gba
-        wget -q --tries=3 https://archive.org/download/gba-homebrew/2004-mine.gba -O Mine.gba
-        
-        cd ../arcade
-        wget -q --tries=3 https://archive.org/download/mame-0.259-roms/arkanoid.zip -O Arkanoid.zip
-        wget -q --tries=3 https://archive.org/download/mame-0.259-roms/pacman.zip -O Pacman.zip
+        cd psx && wget -q --tries=3 https://archive.org/download/PSX-Homebrew-Demos/PSXDoom.PBP -O Doom.PBP && wget -q --tries=3 https://archive.org/download/psx-homebrew/DukeNukem.PBP -O Duke.PBP && wget -q --tries=3 https://archive.org/download/psx-homebrew/Wolf3D.PBP -O Wolf3D.PBP
+        cd ../snes && wget -q --tries=3 https://archive.org/download/snes-homebrew/SNES-Tetris.sfc -O Tetris.sfc && wget -q --tries=3 https://archive.org/download/snes-homebrew/SuperMarioWorld.sfc -O Mario.sfc && wget -q --tries=3 https://archive.org/download/snes-homebrew/StreetFighter2.sfc -O SF2.sfc
+        cd ../gba && wget -q --tries=3 https://archive.org/download/gba-homebrew/CaveStory.gba -O CaveStory.gba && wget -q --tries=3 https://archive.org/download/gba-homebrew/2004-mine.gba -O Mine.gba
+        cd ../arcade && wget -q --tries=3 https://archive.org/download/mame-0.259-roms/arkanoid.zip -O Arkanoid.zip && wget -q --tries=3 https://archive.org/download/mame-0.259-roms/pacman.zip -O Pacman.zip
 
-        # === 6. بناء ISO خفيف ===
         sudo mksquashfs squashfs-root mnt/boot/batocera -comp xz -Xbcj x86 -b 1024K -noappend -processors 2
         sudo umount mnt
         mkdir -p iso/EFI/BOOT
@@ -125,5 +105,5 @@ jobs:
     - name: Upload ISO
       uses: actions/upload-artifact@v4
       with:
-        name: KSO-FUN-11GAMES-V11
+        name: KSO-FUN-11GAMES-V12
         path: KSO-FUN-11GAMES.iso
