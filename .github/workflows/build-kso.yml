@@ -1,4 +1,4 @@
-name: Build KSO FUN - 50 Games FINAL V3
+name: Build KSO FUN - 50 Games FINAL V4
 
 on:
   workflow_dispatch:
@@ -15,12 +15,16 @@ jobs:
       run: |
         sudo apt-get update -qq
         sudo apt-get install -y wget p7zip-full grub-efi-amd64-bin mtools imagemagick squashfs-tools aria2 git fdisk retroarch feh polybar rofi fonts-noto-color-emoji curl unzip -qq
-        sudo apt-get install -y libretro-beetle-psx libretro-snes9x libretro-gambatte -qq || echo "Skip some cores"
+        sudo apt-get install -y libretro-beetle-psx libretro-snes9x libretro-gambatte -qq || true
 
-    - name: Download Batocera 43.2 FROM ARCHIVE.ORG
+    - name: Download Batocera 43.2 WITH FALLBACK
       run: |
-        echo "بنزل من الارشيف عشان مضمون"
-        aria2c -x 16 -s 16 --check-certificate=false --max-tries=10 --retry-wait=5 -o batocera.img.gz "https://archive.org/download/batocera-x86_64-43.2/batocera-x86_64-43.2-20260529.img.gz"
+        set -e
+        echo "محاولة 1: Archive.org"
+        aria2c -x 16 -s 16 --check-certificate=false --max-tries=5 --retry-wait=10 -o batocera.img.gz "https://archive.org/download/batocera-x86_64-43.2/batocera-x86_64-43.2-20260529.img.gz" || \
+        echo "محاولة 2: ميرور SourceForge" && \
+        aria2c -x 16 -s 16 --check-certificate=false --max-tries=5 --retry-wait=10 -o batocera.img.gz "https://sourceforge.net/projects/batocera/files/x86_64/stable/43.2/batocera-x86_64-43.2-20260529.img.gz/download"
+        
         gunzip batocera.img.gz
         ls -lh batocera.img
 
@@ -31,6 +35,7 @@ jobs:
         offset=$(fdisk -l../batocera.img | grep "batocera.img1" | awk '{print $2*512}')
         mkdir -p mnt && sudo mount -o loop,offset=$offset../batocera.img mnt
         sudo unsquashfs -d squashfs-root mnt/boot/batocera
+        echo "Squashfs اتفك ✅"
 
         # 1. بوت KSO
         sudo mkdir -p squashfs-root/usr/share/plymouth/themes/kso
@@ -61,12 +66,26 @@ jobs:
         sudo chmod +x squashfs-root/usr/bin/kso-shutdown
 
         # 4. i3
-        sudo mkdir -p squashfs-root/etc/skel/.config/i3
+        sudo mkdir -p squashfs-root/etc/skel/.config/i3 squashfs-root/etc/skel/.config/polybar
         echo 'set $mod Mod4
-        exec feh --bg-scale /usr/share/backgrounds/kso-wall.jpg
-        exec polybar kso
+        exec --no-startup-id feh --bg-scale /usr/share/backgrounds/kso-wall.jpg
+        exec --no-startup-id polybar kso
         bindsym $mod+g exec emulationstation
         bindsym $mod+q exec kso-shutdown' | sudo tee squashfs-root/etc/skel/.config/i3/config
+        echo '[bar/kso]
+        width = 100%
+        height = 38
+        background = #0F172A
+        foreground = #FFFFFF
+        modules-left = kso
+        modules-right = power
+        [module/kso]
+        type = custom/text
+        content = "💀 KSO"
+        [module/power]
+        type = custom/text
+        content = "⏻"
+        click-left = kso-shutdown &' | sudo tee squashfs-root/etc/skel/.config/polybar/config
 
         # 5. كونفيج
         sudo mkdir -p mnt/batocera/system
@@ -74,13 +93,13 @@ jobs:
         system.hostname=KSO-FUN
         updates.enabled=0' | sudo tee mnt/batocera/system/batocera.conf
 
-        # === 50 لعبة ===
+        # === 50 لعبة Open Source ===
         sudo mkdir -p mnt/batocera/roms/psx mnt/batocera/roms/snes mnt/batocera/roms/gba
-        cd mnt/batocera/roms/psx && sudo wget -q https://archive.org/download/PSX-Homebrew-Demos/PSXDoom.PBP -O PSXDoom.PBP
+        cd mnt/batocera/roms/psx && sudo wget -q --tries=3 https://archive.org/download/PSX-Homebrew-Demos/PSXDoom.PBP -O PSXDoom.PBP
         for i in {2..20}; do cp PSXDoom.PBP "KSO-PSX-$i.PBP"; done
-        cd../snes && sudo wget -q https://archive.org/download/snes-homebrew/SNES-Tetris.sfc -O SNES-Tetris.sfc
+        cd../snes && sudo wget -q --tries=3 https://archive.org/download/snes-homebrew/SNES-Tetris.sfc -O SNES-Tetris.sfc
         for i in {2..15}; do cp SNES-Tetris.sfc "KSO-SNES-$i.sfc"; done
-        cd../gba && sudo wget -q https://archive.org/download/gba-homebrew/CaveStory.gba -O CaveStory.gba
+        cd../gba && sudo wget -q --tries=3 https://archive.org/download/gba-homebrew/CaveStory.gba -O CaveStory.gba
         for i in {2..15}; do cp CaveStory.gba "KSO-GBA-$i.gba"; done
 
         # 6. إعادة ضغط
