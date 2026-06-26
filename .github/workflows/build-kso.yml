@@ -1,4 +1,4 @@
-name: Build KSO FUN - 11 GAMES V16.7 LIVE FINAL
+name: Build KSO FUN - 11 GAMES V16.8 LIVE FINAL
 
 on:
   workflow_dispatch:
@@ -19,6 +19,7 @@ jobs:
     - name: Build KSO System From Scratch
       run: |
         set -e
+        sudo rm -rf rootfs # امسح اي بواقي قديمة
         sudo mkdir -p rootfs
         cd rootfs
         
@@ -89,9 +90,10 @@ jobs:
 
     - name: Make LIVE ISO
       run: |
-        sudo mkdir -p iso/boot/grub iso/casper # <- هنا حطيت sudo
-        sudo cp /boot/vmlinuz-* iso/casper/vmlinuz # <- وهنا
-        sudo cp /boot/initrd.img-* iso/casper/initrd # <- وهنا
+        sudo rm -rf iso # <- ده السطر السحري اللي هيمسح الملف البايظ
+        sudo mkdir -p iso/boot/grub iso/casper 
+        sudo cp /boot/vmlinuz-* iso/casper/vmlinuz 
+        sudo cp /boot/initrd.img-* iso/casper/initrd 
         sudo mksquashfs rootfs iso/casper/filesystem.squashfs -comp xz -b 1024K
         echo 'set timeout=3
         menuentry "KSO-GamerOS LIVE 11 GAMES" {
@@ -104,5 +106,5 @@ jobs:
     - name: Upload ISO
       uses: actions/upload-artifact@v4
       with:
-        name: KSO-FUN-LIVE-V16.7
+        name: KSO-FUN-LIVE-V16.8
         path: KSO-FUN-LIVE.iso
