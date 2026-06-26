@@ -1,4 +1,4 @@
-name: Build KSO FUN - 10 GAMES + MINETEST 8GB RAM
+name: Build KSO FUN - 11 GAMES DIRECT LINK V11
 
 on:
   workflow_dispatch:
@@ -14,26 +14,22 @@ jobs:
     - name: Install Dependencies
       run: |
         sudo apt-get update -qq
-        sudo apt-get install -y wget p7zip-full grub-efi-amd64-bin mtools imagemagick squashfs-tools aria2 git fdisk retroarch feh polybar rofi fonts-noto-color-emoji curl unzip html-xml-utils minetest -qq
+        sudo apt-get install -y wget p7zip-full grub-efi-amd64-bin mtools imagemagick squashfs-tools aria2 git fdisk retroarch feh polybar rofi fonts-noto-color-emoji curl unzip minetest -qq
 
-    - name: AUTO FIND & DOWNLOAD LATEST BATOCERA
+    - name: DOWNLOAD BATOCERA 42.1 DIRECT
       run: |
         set -e
-        echo "بنقلب على اخر نسخة x86_64..."
-        BATOCERA_URL=$(curl -s https://batocera.org/download | hxselect -s '\n' 'a[href*="x86_64"]' | grep '.img.gz' | head -n 1)
-        if [ -n "$BATOCERA_URL" ]; then aria2c -x 8 -s 8 --max-tries=5 --retry-wait=20 -o batocera.img.gz "$BATOCERA_URL"; fi
-        if [! -f batocera.img.gz ]; then
-          LATEST_ARCHIVE=$(curl -s https://archive.org/download/batocera-x86_64/ | hxselect -s '\n' 'a' | grep 'img.gz' | sort -V | tail -n 1)
-          aria2c -x 8 -s 8 --max-tries=5 --retry-wait=20 -o batocera.img.gz "https://archive.org/download/batocera-x86_64/$LATEST_ARCHIVE"
-        fi
+        echo "بننزل باتوسيرا 42.1 مباشر من Archive.org..."
+        aria2c -x 16 -s 16 --max-tries=10 --retry-wait=30 -o batocera.img.gz "https://archive.org/download/batocera-x86_64-42.1/batocera-x86_64-42.1-20250519.img.gz"
         gunzip batocera.img.gz
+        ls -lh batocera.img
 
     - name: Mount and Modify KSO FUN LIGHT
       run: |
         set -e
         mkdir -p work && cd work
-        offset=$(fdisk -l../batocera.img | grep "batocera.img1" | awk '{print $2*512}')
-        mkdir -p mnt && sudo mount -o loop,offset=$offset../batocera.img mnt
+        offset=$(fdisk -l ../batocera.img | grep "batocera.img1" | awk '{print $2*512}')
+        mkdir -p mnt && sudo mount -o loop,offset=$offset ../batocera.img mnt
         sudo unsquashfs -d squashfs-root mnt/boot/batocera
 
         # === 1. البوت المتحرك - KSO EDITION ===
@@ -63,7 +59,7 @@ jobs:
 
         # === 2. خلفية ===
         sudo mkdir -p squashfs-root/usr/share/backgrounds
-        sudo convert -size 1920x1080 xc:'#0F172A' -fill '#3B82F6' -pointsize 120 -gravity center -annotate +0-80 'KSO' -fill white -pointsize 40 -annotate +0+40 'برمجة عبد الله و عبد الرحمن هاني' -fill '#60A5FA' -pointsize 30 -annotate +0+90 '10 GAMES + MINETEST' squashfs-root/usr/share/backgrounds/kso-wall.jpg
+        sudo convert -size 1920x1080 xc:'#0F172A' -fill '#3B82F6' -pointsize 120 -gravity center -annotate +0-80 'KSO' -fill white -pointsize 40 -annotate +0+40 'برمجة عبد الله و عبد الرحمن هاني' -fill '#60A5FA' -pointsize 30 -annotate +0+90 '11 GAMES + MINETEST' squashfs-root/usr/share/backgrounds/kso-wall.jpg
 
         # === 3. i3 خفيف + ماوس + Windows+Q ===
         sudo mkdir -p squashfs-root/usr/bin squashfs-root/etc/skel/.config/i3
@@ -79,17 +75,15 @@ jobs:
         gaps inner 8
         client.focused #3B82F6 #1E293B #FFFFFF #3B82F6' | sudo tee squashfs-root/etc/skel/.config/i3/config
 
-        # === 4. Minetest باعدادات خفيفة للـ 8 رام ===
+        # === 4. Minetest باعدادات خفيفة ===
         sudo mkdir -p mnt/batocera/roms/ports squashfs-root/etc/skel/.minetest
-        echo '[main]
-        video_driver = opengl
+        echo 'video_driver = opengl
         enable_shaders = false
         enable_particles = false
         enable_clouds = false
         view_bobbing_amount = 0.0
         fps_max = 60
         render_distance = 50' | sudo tee squashfs-root/etc/skel/.minetest/minetest.conf
-        
         echo '#!/bin/bash
         minetest' | sudo tee mnt/batocera/roms/ports/Minetest.sh
         sudo chmod +x mnt/batocera/roms/ports/Minetest.sh
@@ -103,16 +97,16 @@ jobs:
         wget -q --tries=3 https://archive.org/download/psx-homebrew/DukeNukem.PBP -O Duke.PBP 
         wget -q --tries=3 https://archive.org/download/psx-homebrew/Wolf3D.PBP -O Wolf3D.PBP
         
-        cd../snes
+        cd ../snes
         wget -q --tries=3 https://archive.org/download/snes-homebrew/SNES-Tetris.sfc -O Tetris.sfc
         wget -q --tries=3 https://archive.org/download/snes-homebrew/SuperMarioWorld.sfc -O Mario.sfc
         wget -q --tries=3 https://archive.org/download/snes-homebrew/StreetFighter2.sfc -O SF2.sfc
         
-        cd../gba
+        cd ../gba
         wget -q --tries=3 https://archive.org/download/gba-homebrew/CaveStory.gba -O CaveStory.gba
         wget -q --tries=3 https://archive.org/download/gba-homebrew/2004-mine.gba -O Mine.gba
         
-        cd../arcade
+        cd ../arcade
         wget -q --tries=3 https://archive.org/download/mame-0.259-roms/arkanoid.zip -O Arkanoid.zip
         wget -q --tries=3 https://archive.org/download/mame-0.259-roms/pacman.zip -O Pacman.zip
 
@@ -121,9 +115,9 @@ jobs:
         sudo umount mnt
         mkdir -p iso/EFI/BOOT
         cp /usr/lib/grub/x86_64-efi/monolithic/grubx64.efi iso/EFI/BOOT/BOOTX64.EFI
-        cp../batocera.img iso/batocera.img
+        cp ../batocera.img iso/batocera.img
         echo 'set timeout=3
-        menuentry "KSO-GamerOS 10 GAMES + MINETEST" {
+        menuentry "KSO-GamerOS 11 GAMES" {
           linux /batocera.img
         }' | sudo tee iso/EFI/BOOT/grub.cfg
         xorriso -as mkisofs -o KSO-FUN-11GAMES.iso -isohybrid-gpt-basdat -eltorito-alt-boot -e EFI/BOOT/BOOTX64.EFI -no-emul-boot -V "KSO_11" iso/
@@ -131,5 +125,5 @@ jobs:
     - name: Upload ISO
       uses: actions/upload-artifact@v4
       with:
-        name: KSO-FUN-11GAMES-8GBRAM
+        name: KSO-FUN-11GAMES-V11
         path: KSO-FUN-11GAMES.iso
