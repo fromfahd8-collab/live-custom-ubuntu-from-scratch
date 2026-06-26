@@ -21,31 +21,23 @@ jobs:
     - name: Auto Find & Download Batocera x86_64
       run: |
         set -e
-        echo "بجيب آخر إصدار x86_64 من API الرسمي..."
+        echo "بستخدم الميرور الفرنسي المباشر..."
         
-        # بنجيب آخر إصدار من صفحة التحميل نفسها عشان الميرور بيعمل بلوك لـ curl
-        LATEST_VERSION=$(curl -s --user-agent "Mozilla/5.0" https://batocera.org | grep -o 'Get Batocera.linux [0-9.]*' | head -1 | cut -d' ' -f3)
+        FILE_NAME="batocera-x86_64-43.1-20260529.img.gz"
+        FULL_URL="https://mirrors.o2switch.fr/batocera/x86_64/stable/43.1/${FILE_NAME}"
         
-        if [ -z "$LATEST_VERSION" ]; then
-          echo "مقدرتش أجيب الإصدار، بستخدم 43.1 احتياطي"
-          LATEST_VERSION="43.1"
-        fi
-        
-        FILE_NAME="batocera-x86_64-${LATEST_VERSION}-20260529.img.gz"
-        FULL_URL="https://archive.batocera.org/x86_64/stable/${LATEST_VERSION}/${FILE_NAME}"
-        
-        echo "✅ بستخدم إصدار: $LATEST_VERSION"
+        echo "✅ بستخدم إصدار ثابت: 43.1"
         echo "بحمل من: $FULL_URL"
         
-        aria2c -x 16 -s 16 -k 1M --file-allocation=none --check-certificate=false --max-tries=10 --retry-wait=5 --user-agent="Mozilla/5.0" -o batocera.img.gz "$FULL_URL" || {
+        aria2c -x 16 -s 16 -k 1M --file-allocation=none --check-certificate=false --max-tries=15 --retry-wait=10 --user-agent="Mozilla/5.0" -o batocera.img.gz "$FULL_URL" || {
           echo "aria2c فشل، بجرب wget..."
-          wget -L --user-agent="Mozilla/5.0" --no-check-certificate --tries=10 --waitretry=5 --progress=dot:giga -O batocera.img.gz "$FULL_URL" || exit 1
+          wget -L --user-agent="Mozilla/5.0" --no-check-certificate --tries=15 --waitretry=10 --progress=dot:giga -O batocera.img.gz "$FULL_URL" || exit 1
         }
         
         echo "بفك الضغط..."
         gunzip batocera.img.gz
         
-        if [! -f batocera.img ]; then
+        if [ ! -f batocera.img ]; then
           echo "التحميل فشل"
           exit 1
         fi
@@ -57,13 +49,13 @@ jobs:
         mkdir -p work && cd work
         
         echo "=== بفحص بارتيشنز Batocera ==="
-        fdisk -l../batocera.img
+        fdisk -l ../batocera.img
         
-        offset=$(fdisk -l../batocera.img | grep "batocera.img1" | awk '{print $2*512}')
+        offset=$(fdisk -l ../batocera.img | grep "batocera.img1" | awk '{print $2*512}')
         
         echo "Offset = $offset - بماونت البارتيشن الرئيسي"
         mkdir -p mnt
-        sudo mount -o loop,offset=$offset../batocera.img mnt
+        sudo mount -o loop,offset=$offset ../batocera.img mnt
         
         echo "محتوى البارتيشن:"
         ls -la mnt/
@@ -76,7 +68,7 @@ jobs:
           exit 1
         fi
         
-        if [! -d "squashfs-root/usr" ]; then
+        if [ ! -d "squashfs-root/usr" ]; then
           echo "فشل: usr مش موجود بعد فك squashfs"
           exit 1
         fi
@@ -253,7 +245,7 @@ jobs:
         # بناء ISO
         mkdir -p iso/EFI/BOOT
         cp /usr/lib/grub/x86_64-efi/monolithic/grubx64.efi iso/EFI/BOOT/BOOTX64.EFI
-        cp../batocera.img iso/batocera.img
+        cp ../batocera.img iso/batocera.img
         echo 'set timeout=3
         set default=0
         menuentry "KSO-GamerOS Part 1 - برمجة عبد الله و عبد الرحمن هاني [ kso ]" {
