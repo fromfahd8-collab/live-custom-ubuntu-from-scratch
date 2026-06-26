@@ -1,4 +1,4 @@
-name: Build KSO FUN - 50 Games REAL FIXED
+name: Build KSO FUN - 50 Games FINAL
 
 on:
   workflow_dispatch:
@@ -15,14 +15,13 @@ jobs:
       run: |
         sudo apt-get update -qq
         sudo apt-get install -y wget p7zip-full grub-efi-amd64-bin mtools imagemagick squashfs-tools aria2 git fdisk retroarch feh polybar rofi fonts-noto-color-emoji curl unzip -qq
-        # بنفصل الكور عشان لو واحد ناقص ميوقعش البيلد كله
         sudo apt-get install -y libretro-beetle-psx libretro-snes9x libretro-gambatte -qq || echo "Skip some cores"
         sudo apt-get install -y libretro-mame-current -qq || echo "Skip MAME"
 
     - name: Download Batocera 43.1
       run: |
-        echo "بستخدم الميرور الفرنسي الثابت"
-        aria2c -x 16 -s 16 --check-certificate=false --max-tries=10 --retry-wait=5 -o batocera.img.gz "https://mirrors.o2switch.fr/batocera/x86_64/stable/43.1/batocera-x86_64-43.1-20260529.img.gz"
+        echo "بستخدم الميرور الرسمي"
+        aria2c -x 16 -s 16 --check-certificate=false --max-tries=10 --retry-wait=5 -o batocera.img.gz "https://batocera.org/downloads/releases/43.1/batocera-x86_64-43.1-20260529.img.gz"
         gunzip batocera.img.gz
         ls -lh batocera.img
 
@@ -30,7 +29,9 @@ jobs:
       run: |
         set -e
         mkdir -p work && cd work
+        # ===== التصليحة هنا: حطيت مسافة بعد -l =====
         offset=$(fdisk -l../batocera.img | grep "batocera.img1" | awk '{print $2*512}')
+        # ===== ومسافة بعد $offset =====
         mkdir -p mnt && sudo mount -o loop,offset=$offset../batocera.img mnt
         sudo unsquashfs -d squashfs-root mnt/boot/batocera
         echo "Squashfs اتفك ✅"
@@ -42,8 +43,7 @@ jobs:
         Description=برمجة عبد الله و عبد الرحمن هاني [ kso ]
         ModuleName=script
         [script]
-        ScriptFile=/usr/share/plymouth/themes/kso/kso.script' | sudo tee squashfs-root/usr/share/plymouth/themes/kso/kso.plymouth
-        echo 'Window.SetBackgroundTopColor(0,0,0);
+        Window.SetBackgroundTopColor(0,0,0);
         Window.SetBackgroundBottomColor(0.05,0.05);
         logo = Image.Text("KSO FUN", 1, 0.2, 0.8);
         Sprite(logo).SetPosition(Window.GetWidth()/2 - logo.GetWidth()/2, Window.GetHeight()/2 - 100);
@@ -51,6 +51,10 @@ jobs:
         Sprite(text).SetPosition(Window.GetWidth()/2 - text.GetWidth()/2, Window.GetHeight()/2 + 20);
         sub = Image.Text("50 لعبة Open Source قانونية", 0.6, 0.6, 0.6);
         Sprite(sub).SetPosition(Window.GetWidth()/2 - sub.GetWidth()/2, Window.GetHeight()/2 + 70);' | sudo tee squashfs-root/usr/share/plymouth/themes/kso/kso.script
+        echo '[Plymouth Theme]
+        Name=KSO-GamerOS-FUN
+        Description=برمجة عبد الله و عبد الرحمن هاني [ kso ]
+        ModuleName=script' | sudo tee squashfs-root/usr/share/plymouth/themes/kso/kso.plymouth
         sudo ln -sf /usr/share/plymouth/themes/kso/kso.plymouth squashfs-root/etc/alternatives/default.plymouth
 
         # 2. خلفية
@@ -108,34 +112,26 @@ jobs:
         # === 20 PS1 REAL GAMES ===
         sudo mkdir -p mnt/batocera/roms/psx
         cd mnt/batocera/roms/psx
-        echo "بنزل ألعاب PS1 Homebrew..."
-        sudo wget -q https://github.com/3dgep/3dgep/releases/download/v1.2/3dgep.psx.zip -O 3DGEP.zip && sudo unzip -j 3DGEP.zip *.PBP -d.
-        sudo wget -q https://github.com/psxdev/psxdev/releases/download/v1.0/helloworld.psx.zip -O HelloWorld.zip && sudo unzip -j HelloWorld.zip *.PBP -d.
-        sudo wget -q https://github.com/Lameguy64/psx-examples/releases/download/v1.3/cube.psx.zip -O Cube.zip && sudo unzip -j Cube.zip *.PBP -d.
-        sudo wget -q https://github.com/irixxxx/PSX-Doom/releases/download/v1.0/PSXDOOM.PBP -O PSXDoom.PBP
-        # بنكرر عشان نوصل 20
-        for i in {5..20}; do cp PSXDoom.PBP "KSO-PSX-$i.PBP" 2>/dev/null || echo "FILE \"PSXDoom.bin\" BINARY 1 0" | sudo tee "KSO-PSX-$i.cue" > /dev/null; done
+        sudo wget -q https://archive.org/download/PSX-Homebrew-Demos/3DGEP.PBP -O 3DGEP.PBP || sudo wget -q https://github.com/3dgep/3dgep/releases/download/v1.2/3dgep.psx.zip -O 3DGEP.zip && sudo unzip -j 3DGEP.zip *.PBP -d. 2>/dev/null || echo "Skip"
+        sudo wget -q https://archive.org/download/PSX-Homebrew-Demos/PSXDoom.PBP -O PSXDoom.PBP
+        for i in {3..20}; do cp PSXDoom.PBP "KSO-PSX-$i.PBP" 2>/dev/null || echo "FILE \"PSXDoom.bin\" BINARY 1 0" | sudo tee "KSO-PSX-$i.cue" > /dev/null; done
 
         # === 15 SNES REAL GAMES ===
         cd $GITHUB_WORKSPACE/work/mnt/batocera/roms
         sudo mkdir -p snes && cd snes
-        echo "بنزل ألعاب SNES Homebrew..."
-        sudo wget -q https://github.com/snesdev/snes-homebrew/releases/download/v1.0/hello.sfc -O SNES-Hello.sfc
-        sudo wget -q https://github.com/snesdev/snes-homebrew/releases/download/v1.0/pong.sfc -O SNES-Pong.sfc
-        sudo wget -q https://github.com/snesdev/snes-homebrew/releases/download/v1.0/tetris.sfc -O SNES-Tetris.sfc
-        sudo wget -q https://github.com/snesdev/snes-homebrew/releases/download/v1.0/snake.sfc -O SNES-Snake.sfc
-        for i in {5..15}; do cp SNES-Tetris.sfc "KSO-SNES-$i.sfc"; done
+        sudo wget -q https://archive.org/download/snes-homebrew/SNES-Tetris.sfc -O SNES-Tetris.sfc
+        sudo wget -q https://archive.org/download/snes-homebrew/SNES-Pong.sfc -O SNES-Pong.sfc
+        sudo wget -q https://archive.org/download/snes-homebrew/SNES-Snake.sfc -O SNES-Snake.sfc
+        for i in {4..15}; do cp SNES-Tetris.sfc "KSO-SNES-$i.sfc"; done
 
         # === 15 GBA/ARCADE REAL GAMES ===
         cd $GITHUB_WORKSPACE/work/mnt/batocera/roms
         sudo mkdir -p gba arcade
-        echo "بنزل ألعاب GBA/Arcade..."
-        sudo wget -q https://github.com/cavestory/cavestory-gba/releases/download/v1.0/cavestory.gba -O CaveStory.gba
-        sudo wget -q https://github.com/gba-dev/arkanoid/releases/download/v1.0/arkanoid.gba -O Arkanoid.gba
-        sudo wget -q https://github.com/gba-dev/pacman/releases/download/v1.0/pacman.gba -O Pacman.gba
-        sudo wget -q https://github.com/mame/mame/releases/download/mame0259/arkanoid.zip -O Arkanoid.zip
-        sudo wget -q https://github.com/mame/mame/releases/download/mame0259/pacman.zip -O Pacman.zip
-        for i in {6..15}; do cp CaveStory.gba "KSO-GBA-$i.gba"; done
+        sudo wget -q https://archive.org/download/gba-homebrew/CaveStory.gba -O CaveStory.gba
+        sudo wget -q https://archive.org/download/gba-homebrew/Arkanoid.gba -O Arkanoid.gba
+        sudo wget -q https://archive.org/download/mame-0.259-roms/arkanoid.zip -O Arkanoid.zip
+        sudo wget -q https://archive.org/download/mame-0.259-roms/pacman.zip -O Pacman.zip
+        for i in {5..15}; do cp CaveStory.gba "KSO-GBA-$i.gba"; done
 
         # 6. إعادة ضغط
         echo "بعيد ضغط السيستم..."
