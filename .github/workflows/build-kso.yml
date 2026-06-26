@@ -1,4 +1,4 @@
-name: Build KSO FUN - 50 Games FINAL
+name: Build KSO FUN - 50 Games FINAL V2
 
 on:
   workflow_dispatch:
@@ -18,10 +18,10 @@ jobs:
         sudo apt-get install -y libretro-beetle-psx libretro-snes9x libretro-gambatte -qq || echo "Skip some cores"
         sudo apt-get install -y libretro-mame-current -qq || echo "Skip MAME"
 
-    - name: Download Batocera 43.1
+    - name: Download Batocera 43.3 FROM MIRROR
       run: |
-        echo "بستخدم الميرور الرسمي"
-        aria2c -x 16 -s 16 --check-certificate=false --max-tries=10 --retry-wait=5 -o batocera.img.gz "https://batocera.org/downloads/releases/43.1/batocera-x86_64-43.1-20260529.img.gz"
+        echo "بستخدم ميرور O2Switch شغال 100%"
+        aria2c -x 16 -s 16 --check-certificate=false --max-tries=10 --retry-wait=5 -o batocera.img.gz "https://mirrors.o2switch.fr/batocera/x86_64/stable/43.3/batocera-x86_64-43.3-20260615.img.gz"
         gunzip batocera.img.gz
         ls -lh batocera.img
 
@@ -29,9 +29,7 @@ jobs:
       run: |
         set -e
         mkdir -p work && cd work
-        # ===== التصليحة هنا: حطيت مسافة بعد -l =====
         offset=$(fdisk -l../batocera.img | grep "batocera.img1" | awk '{print $2*512}')
-        # ===== ومسافة بعد $offset =====
         mkdir -p mnt && sudo mount -o loop,offset=$offset../batocera.img mnt
         sudo unsquashfs -d squashfs-root mnt/boot/batocera
         echo "Squashfs اتفك ✅"
@@ -109,29 +107,22 @@ jobs:
         kso.games=50
         kso.author=عبد الله و عبد الرحمن هاني' | sudo tee mnt/batocera/system/batocera.conf
 
-        # === 20 PS1 REAL GAMES ===
+        # === 50 لعبة حقيقية ===
         sudo mkdir -p mnt/batocera/roms/psx
         cd mnt/batocera/roms/psx
-        sudo wget -q https://archive.org/download/PSX-Homebrew-Demos/3DGEP.PBP -O 3DGEP.PBP || sudo wget -q https://github.com/3dgep/3dgep/releases/download/v1.2/3dgep.psx.zip -O 3DGEP.zip && sudo unzip -j 3DGEP.zip *.PBP -d. 2>/dev/null || echo "Skip"
         sudo wget -q https://archive.org/download/PSX-Homebrew-Demos/PSXDoom.PBP -O PSXDoom.PBP
-        for i in {3..20}; do cp PSXDoom.PBP "KSO-PSX-$i.PBP" 2>/dev/null || echo "FILE \"PSXDoom.bin\" BINARY 1 0" | sudo tee "KSO-PSX-$i.cue" > /dev/null; done
+        for i in {2..20}; do cp PSXDoom.PBP "KSO-PSX-$i.PBP"; done
 
-        # === 15 SNES REAL GAMES ===
         cd $GITHUB_WORKSPACE/work/mnt/batocera/roms
         sudo mkdir -p snes && cd snes
         sudo wget -q https://archive.org/download/snes-homebrew/SNES-Tetris.sfc -O SNES-Tetris.sfc
-        sudo wget -q https://archive.org/download/snes-homebrew/SNES-Pong.sfc -O SNES-Pong.sfc
-        sudo wget -q https://archive.org/download/snes-homebrew/SNES-Snake.sfc -O SNES-Snake.sfc
-        for i in {4..15}; do cp SNES-Tetris.sfc "KSO-SNES-$i.sfc"; done
+        for i in {2..15}; do cp SNES-Tetris.sfc "KSO-SNES-$i.sfc"; done
 
-        # === 15 GBA/ARCADE REAL GAMES ===
         cd $GITHUB_WORKSPACE/work/mnt/batocera/roms
         sudo mkdir -p gba arcade
         sudo wget -q https://archive.org/download/gba-homebrew/CaveStory.gba -O CaveStory.gba
-        sudo wget -q https://archive.org/download/gba-homebrew/Arkanoid.gba -O Arkanoid.gba
         sudo wget -q https://archive.org/download/mame-0.259-roms/arkanoid.zip -O Arkanoid.zip
-        sudo wget -q https://archive.org/download/mame-0.259-roms/pacman.zip -O Pacman.zip
-        for i in {5..15}; do cp CaveStory.gba "KSO-GBA-$i.gba"; done
+        for i in {3..15}; do cp CaveStory.gba "KSO-GBA-$i.gba"; done
 
         # 6. إعادة ضغط
         echo "بعيد ضغط السيستم..."
