@@ -1,4 +1,4 @@
-name: Build KSO FUN - 11 GAMES V16.9 LIVE FINAL
+name: Build KSO FUN - 11 GAMES V17.0 LIVE FINAL
 
 on:
   workflow_dispatch:
@@ -23,7 +23,6 @@ jobs:
         sudo mkdir -p rootfs
         cd rootfs
         
-        # === 1. البوت KSO ===
         sudo mkdir -p usr/share/plymouth/themes/kso etc/alternatives
         echo '[Plymouth Theme]
         Name=KSO-GamerOS-FUN
@@ -48,11 +47,9 @@ jobs:
         ModuleName=script' | sudo tee usr/share/plymouth/themes/kso/kso.plymouth
         sudo ln -sf /usr/share/plymouth/themes/kso/kso.plymouth etc/alternatives/default.plymouth
 
-        # === 2. الخلفية ===
         sudo mkdir -p usr/share/backgrounds
         sudo convert -size 1920x1080 xc:'#0F172A' -fill '#3B82F6' -font DejaVu-Sans -pointsize 120 -gravity center -annotate +0-80 'KSO' -fill white -pointsize 40 -annotate +0+40 'برمجة عبد الله و عبد الرحمن هاني' -fill '#60A5FA' -pointsize 30 -annotate +0+90 '11 GAMES LIVE' usr/share/backgrounds/kso-wall.jpg
 
-        # === 3. i3 + ماوس + Windows+Q ===
         sudo mkdir -p usr/bin etc/skel/.config/i3
         echo '#!/bin/bash
         systemctl poweroff' | sudo tee usr/bin/kso-shutdown && sudo chmod +x usr/bin/kso-shutdown
@@ -66,7 +63,6 @@ jobs:
         gaps inner 8
         client.focused #3B82F6 #1E293B #FFFFFF #3B82F6' | sudo tee etc/skel/.config/i3/config
 
-        # === 4. Minetest خفيف ===
         sudo mkdir -p etc/skel/.minetest
         echo 'video_driver = opengl
         enable_shaders = false
@@ -76,7 +72,6 @@ jobs:
         fps_max = 60
         render_distance = 50' | sudo tee etc/skel/.minetest/minetest.conf
 
-        # === 5. الـ 11 لعبة ===
         sudo mkdir -p /tmp/kso_games/psx /tmp/kso_games/snes /tmp/kso_games/gba /tmp/kso_games/arcade
         cd /tmp/kso_games
         cd psx && wget -q --tries=3 https://archive.org/download/PSX-Homebrew-Demos/PSXDoom.PBP -O Doom.PBP && wget -q --tries=3 https://archive.org/download/psx-homebrew/DukeNukem.PBP -O Duke.PBP && wget -q --tries=3 https://archive.org/download/psx-homebrew/Wolf3D.PBP -O Wolf3D.PBP
@@ -90,25 +85,21 @@ jobs:
 
     - name: Make LIVE ISO
       run: |
-        sudo rm -rf iso
-        sudo mkdir -p iso
-        sudo mkdir -p iso/boot
-        sudo mkdir -p iso/boot/grub
-        sudo mkdir -p iso/casper
-        ls -ld iso/boot iso/boot/grub iso/casper # <- سطر التأكيد
-        sudo cp /boot/vmlinuz-* iso/casper/vmlinuz 
-        sudo cp /boot/initrd.img-* iso/casper/initrd 
-        sudo mksquashfs rootfs iso/casper/filesystem.squashfs -comp xz -b 1024K
+        sudo rm -rf iso_kso # غيرنا الاسم
+        sudo mkdir -p iso_kso/boot/grub iso_kso/casper 
+        sudo cp /boot/vmlinuz-* iso_kso/casper/vmlinuz 
+        sudo cp /boot/initrd.img-* iso_kso/casper/initrd 
+        sudo mksquashfs rootfs iso_kso/casper/filesystem.squashfs -comp xz -b 1024K
         echo 'set timeout=3
         menuentry "KSO-GamerOS LIVE 11 GAMES" {
           linux /casper/vmlinuz boot=casper quiet splash
           initrd /casper/initrd
-        }' | sudo tee iso/boot/grub/grub.cfg
-        sudo cp /usr/lib/grub/x86_64-efi/monolithic/grubx64.efi iso/boot/grub/BOOTX64.EFI
-        sudo xorriso -as mkisofs -o KSO-FUN-LIVE.iso -isohybrid-gpt-basdat -eltorito-alt-boot -e boot/grub/BOOTX64.EFI -no-emul-boot -V "KSO_LIVE" iso/
+        }' | sudo tee iso_kso/boot/grub/grub.cfg
+        sudo cp /usr/lib/grub/x86_64-efi/monolithic/grubx64.efi iso_kso/boot/grub/BOOTX64.EFI
+        sudo xorriso -as mkisofs -o KSO-FUN-LIVE.iso -isohybrid-gpt-basdat -eltorito-alt-boot -e boot/grub/BOOTX64.EFI -no-emul-boot -V "KSO_LIVE" iso_kso/ # غيرنا الاسم هنا
 
     - name: Upload ISO
       uses: actions/upload-artifact@v4
       with:
-        name: KSO-FUN-LIVE-V16.9
+        name: KSO-FUN-LIVE-V17.0
         path: KSO-FUN-LIVE.iso
