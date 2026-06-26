@@ -1,4 +1,4 @@
-name: Build KSO FUN - 11 GAMES V16.6 LIVE FINAL
+name: Build KSO FUN - 11 GAMES V16.7 LIVE FINAL
 
 on:
   workflow_dispatch:
@@ -19,7 +19,7 @@ jobs:
     - name: Build KSO System From Scratch
       run: |
         set -e
-        mkdir -p rootfs
+        sudo mkdir -p rootfs
         cd rootfs
         
         # === 1. البوت KSO ===
@@ -75,8 +75,8 @@ jobs:
         fps_max = 60
         render_distance = 50' | sudo tee etc/skel/.minetest/minetest.conf
 
-        # === 5. الـ 11 لعبة - صلحت المسافات هنا ===
-        mkdir -p /tmp/kso_games/psx /tmp/kso_games/snes /tmp/kso_games/gba /tmp/kso_games/arcade
+        # === 5. الـ 11 لعبة ===
+        sudo mkdir -p /tmp/kso_games/psx /tmp/kso_games/snes /tmp/kso_games/gba /tmp/kso_games/arcade
         cd /tmp/kso_games
         cd psx && wget -q --tries=3 https://archive.org/download/PSX-Homebrew-Demos/PSXDoom.PBP -O Doom.PBP && wget -q --tries=3 https://archive.org/download/psx-homebrew/DukeNukem.PBP -O Duke.PBP && wget -q --tries=3 https://archive.org/download/psx-homebrew/Wolf3D.PBP -O Wolf3D.PBP
         cd../snes && wget -q --tries=3 https://archive.org/download/snes-homebrew/SNES-Tetris.sfc -O Tetris.sfc && wget -q --tries=3 https://archive.org/download/snes-homebrew/SuperMarioWorld.sfc -O Mario.sfc && wget -q --tries=3 https://archive.org/download/snes-homebrew/StreetFighter2.sfc -O SF2.sfc
@@ -89,20 +89,20 @@ jobs:
 
     - name: Make LIVE ISO
       run: |
-        mkdir -p iso/boot/grub iso/casper
-        cp /boot/vmlinuz-* iso/casper/vmlinuz
-        cp /boot/initrd.img-* iso/casper/initrd
+        sudo mkdir -p iso/boot/grub iso/casper # <- هنا حطيت sudo
+        sudo cp /boot/vmlinuz-* iso/casper/vmlinuz # <- وهنا
+        sudo cp /boot/initrd.img-* iso/casper/initrd # <- وهنا
         sudo mksquashfs rootfs iso/casper/filesystem.squashfs -comp xz -b 1024K
         echo 'set timeout=3
         menuentry "KSO-GamerOS LIVE 11 GAMES" {
           linux /casper/vmlinuz boot=casper quiet splash
           initrd /casper/initrd
         }' | sudo tee iso/boot/grub/grub.cfg
-        cp /usr/lib/grub/x86_64-efi/monolithic/grubx64.efi iso/boot/grub/BOOTX64.EFI
+        sudo cp /usr/lib/grub/x86_64-efi/monolithic/grubx64.efi iso/boot/grub/BOOTX64.EFI
         sudo xorriso -as mkisofs -o KSO-FUN-LIVE.iso -isohybrid-gpt-basdat -eltorito-alt-boot -e boot/grub/BOOTX64.EFI -no-emul-boot -V "KSO_LIVE" iso/
 
     - name: Upload ISO
       uses: actions/upload-artifact@v4
       with:
-        name: KSO-FUN-LIVE-V16.6
+        name: KSO-FUN-LIVE-V16.7
         path: KSO-FUN-LIVE.iso
