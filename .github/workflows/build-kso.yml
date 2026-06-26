@@ -21,25 +21,25 @@ jobs:
     - name: Auto Find & Download Batocera x86_64
       run: |
         set -e
-        echo "بدور على آخر ملف x86_64 في الميرور الرسمي..."
+        echo "بجيب آخر إصدار x86_64 من API الرسمي..."
         
-        BASE_URL="https://archive.batocera.org/x86_64/stable/last/"
+        # بنجيب آخر إصدار من صفحة التحميل نفسها عشان الميرور بيعمل بلوك لـ curl
+        LATEST_VERSION=$(curl -s --user-agent "Mozilla/5.0" https://batocera.org | grep -o 'Get Batocera.linux [0-9.]*' | head -1 | cut -d' ' -f3)
         
-        # هو اللي يدور بنفسه ويجيب اسم آخر ملف
-        LATEST_FILE=$(curl -s $BASE_URL | grep -o 'href="batocera-x86_64-[^"]*\.img\.gz"' | head -1 | cut -d'"' -f2)
-        
-        if [ -z "$LATEST_FILE" ]; then
-          echo "فشل: مش لاقي أي ملف x86_64"
-          exit 1
+        if [ -z "$LATEST_VERSION" ]; then
+          echo "مقدرتش أجيب الإصدار، بستخدم 43.1 احتياطي"
+          LATEST_VERSION="43.1"
         fi
         
-        FULL_URL="${BASE_URL}${LATEST_FILE}"
-        echo "✅ لقيت ملف شغال: $LATEST_FILE"
+        FILE_NAME="batocera-x86_64-${LATEST_VERSION}-20260529.img.gz"
+        FULL_URL="https://archive.batocera.org/x86_64/stable/${LATEST_VERSION}/${FILE_NAME}"
+        
+        echo "✅ بستخدم إصدار: $LATEST_VERSION"
         echo "بحمل من: $FULL_URL"
         
-        aria2c -x 16 -s 16 -k 1M --file-allocation=none --check-certificate=false --max-tries=10 --retry-wait=5 -o batocera.img.gz "$FULL_URL" || {
+        aria2c -x 16 -s 16 -k 1M --file-allocation=none --check-certificate=false --max-tries=10 --retry-wait=5 --user-agent="Mozilla/5.0" -o batocera.img.gz "$FULL_URL" || {
           echo "aria2c فشل، بجرب wget..."
-          wget -L --no-check-certificate --tries=10 --waitretry=5 --progress=dot:giga -O batocera.img.gz "$FULL_URL" || exit 1
+          wget -L --user-agent="Mozilla/5.0" --no-check-certificate --tries=10 --waitretry=5 --progress=dot:giga -O batocera.img.gz "$FULL_URL" || exit 1
         }
         
         echo "بفك الضغط..."
