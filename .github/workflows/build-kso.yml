@@ -21,18 +21,12 @@ jobs:
     - name: Auto Find & Download Batocera x86_64
       run: |
         set -e
-        echo "بدور على آخر ملف x86_64 في مجلد last..."
+        echo "بدور على آخر ملف x86_64 في الميرور الرسمي..."
         
-        BASE_URL="https://mirrors.o2switch.fr/batocera/x86_64/stable/last/"
+        BASE_URL="https://archive.batocera.org/x86_64/stable/last/"
         
         # هو اللي يدور بنفسه ويجيب اسم آخر ملف
         LATEST_FILE=$(curl -s $BASE_URL | grep -o 'href="batocera-x86_64-[^"]*\.img\.gz"' | head -1 | cut -d'"' -f2)
-        
-        if [ -z "$LATEST_FILE" ]; then
-          echo "ملقتش ملف في last، بجرب فولدر stable..."
-          BASE_URL="https://mirrors.o2switch.fr/batocera/x86_64/stable/"
-          LATEST_FILE=$(curl -s $BASE_URL | grep -o 'href="batocera-x86_64-[^"]*\.img\.gz"' | sort -V | tail -1)
-        fi
         
         if [ -z "$LATEST_FILE" ]; then
           echo "فشل: مش لاقي أي ملف x86_64"
@@ -43,15 +37,15 @@ jobs:
         echo "✅ لقيت ملف شغال: $LATEST_FILE"
         echo "بحمل من: $FULL_URL"
         
-        aria2c -x 16 -s 16 -k 1M --file-allocation=none --check-certificate=false --max-tries=5 -o batocera.img.gz "$FULL_URL" || {
+        aria2c -x 16 -s 16 -k 1M --file-allocation=none --check-certificate=false --max-tries=10 --retry-wait=5 -o batocera.img.gz "$FULL_URL" || {
           echo "aria2c فشل، بجرب wget..."
-          wget -L --no-check-certificate --tries=5 --progress=dot:giga -O batocera.img.gz "$FULL_URL" || exit 1
+          wget -L --no-check-certificate --tries=10 --waitretry=5 --progress=dot:giga -O batocera.img.gz "$FULL_URL" || exit 1
         }
         
         echo "بفك الضغط..."
         gunzip batocera.img.gz
         
-        if [ ! -f batocera.img ]; then
+        if [! -f batocera.img ]; then
           echo "التحميل فشل"
           exit 1
         fi
@@ -63,13 +57,13 @@ jobs:
         mkdir -p work && cd work
         
         echo "=== بفحص بارتيشنز Batocera ==="
-        fdisk -l ../batocera.img
+        fdisk -l../batocera.img
         
-        offset=$(fdisk -l ../batocera.img | grep "batocera.img1" | awk '{print $2*512}')
+        offset=$(fdisk -l../batocera.img | grep "batocera.img1" | awk '{print $2*512}')
         
         echo "Offset = $offset - بماونت البارتيشن الرئيسي"
         mkdir -p mnt
-        sudo mount -o loop,offset=$offset ../batocera.img mnt
+        sudo mount -o loop,offset=$offset../batocera.img mnt
         
         echo "محتوى البارتيشن:"
         ls -la mnt/
@@ -82,14 +76,14 @@ jobs:
           exit 1
         fi
         
-        if [ ! -d "squashfs-root/usr" ]; then
+        if [! -d "squashfs-root/usr" ]; then
           echo "فشل: usr مش موجود بعد فك squashfs"
           exit 1
         fi
         
         echo "الـ squashfs اتفك بنجاح ✅"
         
-        # بوت شيك
+        # بوت شيك - اسمكم هنا
         sudo mkdir -p squashfs-root/usr/share/plymouth/themes/kso
         echo '[Plymouth Theme]
         Name=KSO-GamerOS-Slick
@@ -114,7 +108,7 @@ jobs:
         sudo mkdir -p squashfs-root/etc/alternatives
         sudo ln -sf /usr/share/plymouth/themes/kso/kso.plymouth squashfs-root/etc/alternatives/default.plymouth
         
-        # أنوية retroarch
+        # أنوية retroarch PS1 + SNES
         sudo mkdir -p mnt/batocera/system/configs/retroarch/cores
         cd /tmp
         sudo apt-get download libretro-beetle-psx libretro-snes9x -qq
@@ -124,7 +118,7 @@ jobs:
         sudo cp /tmp/snes/usr/lib/*/libretro/*.so $GITHUB_WORKSPACE/work/mnt/batocera/system/configs/retroarch/cores/ 2>/dev/null || true
         cd $GITHUB_WORKSPACE/work
         
-        # خلفية شيك
+        # خلفية شيك باسمكم
         sudo mkdir -p squashfs-root/usr/share/backgrounds
         sudo convert -size 1920x1080 xc:black -fill '#1E293B' -draw 'rectangle 0,950 1920,1080' -fill white -gravity center -font DejaVu-Sans -pointsize 80 -annotate 0 'KSO-GamerOS' -fill '#3B82F6' -pointsize 40 -annotate +0+100 'برمجة عبد الله و عبد الرحمن هاني' squashfs-root/usr/share/backgrounds/kso-wall.jpg
         
@@ -135,7 +129,7 @@ jobs:
         ' | sudo tee squashfs-root/usr/bin/kso-shutdown
         sudo chmod +x squashfs-root/usr/bin/kso-shutdown
         
-        # ألعاب PS1 - 36 لعبة
+        # ألعاب PS1 - 36 لعبة Homebrew
         sudo mkdir -p mnt/batocera/roms/psx
         cd mnt/batocera/roms/psx
         sudo wget -q https://github.com/Lameguy64/psn00bsdk/raw/master/examples/hello/main.cue -O "PSN00bSDK-Demo.cue"
@@ -175,7 +169,7 @@ jobs:
         sudo wget -q https://github.com/romhack/psx-space/releases/download/v1.0/space.cue -O "Space-PSX.cue"
         sudo wget -q https://github.com/mine-test/psx-minetest/releases/download/v0.4/minetest-psx.cue -O "Minetest-PSX.cue"
         
-        # ألعاب SNES - 14 لعبة
+        # ألعاب SNES - 14 لعبة Homebrew
         cd $GITHUB_WORKSPACE/work/mnt/batocera/roms
         sudo mkdir -p snes && cd snes
         sudo wget -q https://github.com/mupfelofen-de/snes-template/releases/download/v1.0/template.sfc -O "SNES-Template.sfc"
@@ -259,7 +253,7 @@ jobs:
         # بناء ISO
         mkdir -p iso/EFI/BOOT
         cp /usr/lib/grub/x86_64-efi/monolithic/grubx64.efi iso/EFI/BOOT/BOOTX64.EFI
-        cp ../batocera.img iso/batocera.img
+        cp../batocera.img iso/batocera.img
         echo 'set timeout=3
         set default=0
         menuentry "KSO-GamerOS Part 1 - برمجة عبد الله و عبد الرحمن هاني [ kso ]" {
