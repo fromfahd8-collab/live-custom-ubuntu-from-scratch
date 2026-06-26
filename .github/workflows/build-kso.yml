@@ -1,4 +1,4 @@
-name: Build KSO FUN - 11 GAMES V16.3 LIVE FINAL
+name: Build KSO FUN - 11 GAMES V16.4 LIVE FINAL
 
 on:
   workflow_dispatch:
@@ -75,8 +75,8 @@ jobs:
         fps_max = 60
         render_distance = 50' | sudo tee etc/skel/.minetest/minetest.conf
 
-        # === 5. الـ 11 لعبة - شلت sudo من هنا ===
-        mkdir -p usr/share/games/kso/psx usr/share/games/kso/snes usr/share/games/kso/gba usr/share/games/kso/arcade
+        # === 5. الـ 11 لعبة - صلحت الصلاحيات ===
+        sudo mkdir -p usr/share/games/kso/psx usr/share/games/kso/snes usr/share/games/kso/gba usr/share/games/kso/arcade
         cd usr/share/games/kso
         cd psx && wget -q --tries=3 https://archive.org/download/PSX-Homebrew-Demos/PSXDoom.PBP -O Doom.PBP && wget -q --tries=3 https://archive.org/download/psx-homebrew/DukeNukem.PBP -O Duke.PBP && wget -q --tries=3 https://archive.org/download/psx-homebrew/Wolf3D.PBP -O Wolf3D.PBP
         cd../snes && wget -q --tries=3 https://archive.org/download/snes-homebrew/SNES-Tetris.sfc -O Tetris.sfc && wget -q --tries=3 https://archive.org/download/snes-homebrew/SuperMarioWorld.sfc -O Mario.sfc && wget -q --tries=3 https://archive.org/download/snes-homebrew/StreetFighter2.sfc -O SF2.sfc
@@ -102,5 +102,5 @@ jobs:
     - name: Upload ISO
       uses: actions/upload-artifact@v4
       with:
-        name: KSO-FUN-LIVE-V16.3
+        name: KSO-FUN-LIVE-V16.4
         path: KSO-FUN-LIVE.iso
