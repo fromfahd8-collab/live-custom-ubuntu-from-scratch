@@ -1,4 +1,4 @@
-name: Build KSO FUN - 11 GAMES V15 NO BATOCERA
+name: Build KSO FUN - 11 GAMES V15.1 FIXED
 
 on:
   workflow_dispatch:
@@ -11,10 +11,11 @@ jobs:
     - name: Maximize Build Space
       run: sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /usr/share/swift /usr/local/.ghcup && sudo apt-get clean && df -h
 
-    - name: Install All Emulators + i3 + Minetest
+    - name: Install All Emulators + i3 + Minetest FIXED
       run: |
         sudo apt-get update -qq
-        sudo apt-get install -y grub-efi-amd64-bin mtools imagemagick squashfs-tools git fdisk xorriso i3 feh rofi fonts-noto-color-emoji curl unzip minetest pcsxr snes9x-mt mgba mame -qq
+        # شلنا pcsxr و mame وعدلنا اسماء snes9x و mgba
+        sudo apt-get install -y grub-efi-amd64-bin mtools imagemagick squashfs-tools git fdisk xorriso i3 feh rofi fonts-noto-color-emoji curl unzip minetest snes9x mgba-qt -qq
 
     - name: Build KSO System From Scratch
       run: |
@@ -22,7 +23,6 @@ jobs:
         mkdir -p rootfs
         cd rootfs
         
-        # === 1. البوت المتحرك - KSO EDITION ===
         sudo mkdir -p usr/share/plymouth/themes/kso
         echo '[Plymouth Theme]
         Name=KSO-GamerOS-FUN
@@ -47,11 +47,9 @@ jobs:
         ModuleName=script' | sudo tee usr/share/plymouth/themes/kso/kso.plymouth
         sudo ln -sf /usr/share/plymouth/themes/kso/kso.plymouth etc/alternatives/default.plymouth
 
-        # === 2. خلفية ===
         sudo mkdir -p usr/share/backgrounds
-        sudo convert -size 1920x1080 xc:'#0F172A' -fill '#3B82F6' -pointsize 120 -gravity center -annotate +0-80 'KSO' -fill white -pointsize 40 -annotate +0+40 'برمجة عبد الله و عبد الرحمن هاني' -fill '#60A5FA' -pointsize 30 -annotate +0+90 '11 GAMES NO BATOCERA' usr/share/backgrounds/kso-wall.jpg
+        sudo convert -size 1920x1080 xc:'#0F172A' -fill '#3B82F6' -pointsize 120 -gravity center -annotate +0-80 'KSO' -fill white -pointsize 40 -annotate +0+40 'برمجة عبد الله و عبد الرحمن هاني' -fill '#60A5FA' -pointsize 30 -annotate +0+90 '11 GAMES V15.1' usr/share/backgrounds/kso-wall.jpg
 
-        # === 3. i3 + ماوس + Windows+Q ===
         sudo mkdir -p usr/bin etc/skel/.config/i3
         echo '#!/bin/bash
         systemctl poweroff' | sudo tee usr/bin/kso-shutdown && sudo chmod +x usr/bin/kso-shutdown
@@ -65,7 +63,6 @@ jobs:
         gaps inner 8
         client.focused #3B82F6 #1E293B #FFFFFF #3B82F6' | sudo tee etc/skel/.config/i3/config
 
-        # === 4. Minetest باعدادات خفيفة ===
         sudo mkdir -p etc/skel/.minetest
         echo 'video_driver = opengl
         enable_shaders = false
@@ -75,7 +72,6 @@ jobs:
         fps_max = 60
         render_distance = 50' | sudo tee etc/skel/.minetest/minetest.conf
 
-        # === 5. 10 العاب مختلفة ===
         sudo mkdir -p usr/share/games/kso/psx usr/share/games/kso/snes usr/share/games/kso/gba usr/share/games/kso/arcade
         cd usr/share/games/kso
         cd psx && wget -q --tries=3 https://archive.org/download/PSX-Homebrew-Demos/PSXDoom.PBP -O Doom.PBP && wget -q --tries=3 https://archive.org/download/psx-homebrew/DukeNukem.PBP -O Duke.PBP && wget -q --tries=3 https://archive.org/download/psx-homebrew/Wolf3D.PBP -O Wolf3D.PBP
@@ -96,10 +92,10 @@ jobs:
         }' | sudo tee iso/boot/grub/grub.cfg
         mksquashfs rootfs filesystem.squashfs -comp xz -b 1024K
         cp filesystem.squashfs iso/
-        xorriso -as mkisofs -o KSO-FUN-11GAMES-V15.iso -isohybrid-gpt-basdat -eltorito-alt-boot -e boot/grub/BOOTX64.EFI -no-emul-boot -V "KSO_15" iso/
+        xorriso -as mkisofs -o KSO-FUN-11GAMES-V15.1.iso -isohybrid-gpt-basdat -eltorito-alt-boot -e boot/grub/BOOTX64.EFI -no-emul-boot -V "KSO_15" iso/
 
     - name: Upload ISO
       uses: actions/upload-artifact@v4
       with:
-        name: KSO-FUN-11GAMES-V15
-        path: KSO-FUN-11GAMES-V15.iso
+        name: KSO-FUN-11GAMES-V15.1
+        path: KSO-FUN-11GAMES-V15.1.iso
