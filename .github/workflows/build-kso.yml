@@ -1,4 +1,4 @@
-name: Build KSO FUN - 11 GAMES V19.5 LIVE FINAL
+name: Build KSO FUN - 11 GAMES V20 ALL SUCCESS
 
 on:
   workflow_dispatch:
@@ -28,7 +28,6 @@ jobs:
         sudo ln -sf /usr/share/plymouth/themes/kso/kso.plymouth etc/alternatives/default.plymouth
 
         echo 'exec i3' | sudo tee etc/skel/.xinitrc > /dev/null
-        
         echo 'systemctl poweroff' | sudo tee usr/bin/kso-shutdown > /dev/null
         sudo chmod +x usr/bin/kso-shutdown
         cat > /tmp/i3config << 'EOF'
@@ -46,35 +45,47 @@ jobs:
         EOF
         sudo mv /tmp/minetest.conf etc/skel/.minetest/minetest.conf
 
-        # <== شلنا set -e من هنا. لو لعبة وقعت نكمل ونطلع ايزو
         set +e 
         sudo mkdir -p /tmp/kso_games/psx /tmp/kso_games/snes /tmp/kso_games/gba /tmp/kso_games/arcade
-        # 1. PSX: 3 العاب - بالاسماء الجديدة الشغالة
-        cd /tmp/kso_games/psx && sudo chmod 777 . && wget -q https://archive.org/download/PSX-Homebrew-Demos/PSXDoom.PBP -O Doom.PBP || true
-        cd /tmp/kso_games/psx && sudo chmod 777 . && wget -q https://archive.org/download/PSX-Homebrew-Demos/Duke3D.PBP -O Duke3D.PBP || true
-        cd /tmp/kso_games/psx && sudo chmod 777 . && wget -q https://archive.org/download/PSX-Homebrew-Demos/Wolfenstein3D.PBP -O Wolfenstein3D.PBP || true
-        # 2. SNES: 3 العاب صخر
-        cd /tmp/kso_games/snes && sudo chmod 777 . && wget -q https://archive.org/download/snes-homebrew/SNES-Tetris.sfc -O Tetris.sfc || true
-        cd /tmp/kso_games/snes && sudo chmod 777 . && wget -q https://archive.org/download/snes-homebrew/SuperMarioWorld.sfc -O Mario.sfc || true
-        cd /tmp/kso_games/snes && sudo chmod 777 . && wget -q https://archive.org/download/snes-homebrew/StreetFighter2.sfc -O SF2.sfc || true
+        cd /tmp/kso_games
+        
+        # دالة تنزيل ب 3 محاولات + لينك بديل
+        download() { for i in 1 2 3; do wget -T 10 -t 1 -q $1 -O $2 && return 0 || sleep 2; done; wget -T 10 -t 1 -q $3 -O $2 || return 0; }
+        
+        # 1. PSX: 3 العاب - لينك اساسي + بديل
+        download "https://archive.org/download/PSX-Homebrew-Demos/PSXDoom.PBP" "psx/Doom.PBP" "https://archive.org/download/psx-homebrew/PSXDoom.PBP"
+        download "https://archive.org/download/PSX-Homebrew-Demos/Duke3D.PBP" "psx/Duke3D.PBP" "https://archive.org/download/psx-homebrew/Duke3D.PBP"
+        download "https://archive.org/download/PSX-Homebrew-Demos/Wolfenstein3D.PBP" "psx/Wolfenstein3D.PBP" "https://archive.org/download/psx-homebrew/Wolfenstein3D.PBP"
+        # 2. SNES: 3 العاب 
+        download "https://archive.org/download/snes-homebrew/SNES-Tetris.sfc" "snes/Tetris.sfc" "https://archive.org/download/snes-no-intro-2021/Tetris.sfc"
+        download "https://archive.org/download/snes-homebrew/SuperMarioWorld.sfc" "snes/Mario.sfc" "https://archive.org/download/snes-no-intro-2021/Super_Mario_World.sfc"
+        download "https://archive.org/download/snes-homebrew/StreetFighter2.sfc" "snes/SF2.sfc" "https://archive.org/download/snes-no-intro-2021/Street_Fighter_II.sfc"
         # 3. GBA: 2 لعبة
-        cd /tmp/kso_games/gba && sudo chmod 777 . && wget -q https://archive.org/download/gba-homebrew/CaveStory.gba -O CaveStory.gba || true
-        cd /tmp/kso_games/gba && sudo chmod 777 . && wget -q https://archive.org/download/gba-homebrew/2048.gba -O 2048.gba || true
-        # 4. Arcade: 2 لعبة صخر
-        cd /tmp/kso_games/arcade && sudo chmod 777 . && wget -q https://archive.org/download/mame-0.259-roms/arkanoid.zip -O Arkanoid.zip || true
-        cd /tmp/kso_games/arcade && sudo chmod 777 . && wget -q https://archive.org/download/mame-0.259-roms/pacman.zip -O Pacman.zip || true
+        download "https://archive.org/download/gba-homebrew/CaveStory.gba" "gba/CaveStory.gba" "https://archive.org/download/gba-homebrew-2/CaveStory.gba"
+        download "https://archive.org/download/gba-homebrew/2048.gba" "gba/2048.gba" "https://archive.org/download/gba-homebrew-2/2048.gba"
+        # 4. Arcade: 2 لعبة 
+        download "https://archive.org/download/mame-0.259-roms/arkanoid.zip" "arcade/Arkanoid.zip" "https://archive.org/download/mame-2003-roms/arkanoid.zip"
+        download "https://archive.org/download/mame-0.259-roms/pacman.zip" "arcade/Pacman.zip" "https://archive.org/download/mame-2003-roms/pacman.zip"
         set -e
+        
+        # <== التقرير الكامل
+        echo "====== KSO GAME REPORT V20 ======"
+        find /tmp/kso_games -type f -printf "%s bytes  %p\n" | sort
+        echo "SUCCESS:" $(find /tmp/kso_games -type f | wc -l) "/ 11"
+        echo "MISSING:" $(find /tmp/kso_games -type f | wc -l | xargs -I {} echo $((11-{})))
+        echo "================================="
         
         cd $GITHUB_WORKSPACE/rootfs
         sudo mkdir -p usr/share/games/kso
-        sudo cp -r /tmp/kso_games/* usr/share/games/kso/ || true
+        sudo cp -r /tmp/kso_games/* usr/share/games/kso/
         sudo mksquashfs . filesystem.squashfs -comp xz
     - run: |
+        sudo rm -rf isohybrid
         sudo mkdir -p isohybrid && sudo cp /boot/vmlinuz-* isohybrid/vmlinuz && sudo cp /boot/initrd.img-* isohybrid/initrd && sudo cp filesystem.squashfs isohybrid/
         echo 'menuentry "KSO" { linux /vmlinuz boot=casper }' | sudo tee isohybrid/grub.cfg
         sudo cp /usr/lib/grub/x86_64-efi/monolithic/grubx64.efi isohybrid/BOOTX64.EFI
         sudo xorriso -as mkisofs -o KSO-FUN-LIVE.iso -isohybrid-gpt-basdat -eltorito-alt-boot -e BOOTX64.EFI -no-emul-boot -graft-points /boot/grub= isohybrid/ /casper/filesystem.squashfs=isohybrid/filesystem.squashfs /casper/vmlinuz=isohybrid/vmlinuz /casper/initrd=isohybrid/initrd -V "KSO_LIVE".
     - uses: actions/upload-artifact@v4
       with:
-        name: KSO-FUN-LIVE-V19.5
+        name: KSO-FUN-LIVE-V20
         path: KSO-FUN-LIVE.iso
