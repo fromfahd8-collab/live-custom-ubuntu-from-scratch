@@ -1,4 +1,4 @@
-name: Build KSO FUN - 11 GAMES V18.7 LIVE FINAL
+name: Build KSO FUN - 11 GAMES V19.0 LIVE FINAL
 
 on:
   workflow_dispatch:
@@ -9,14 +9,14 @@ jobs:
     timeout-minutes: 360
     steps:
     - run: sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /usr/share/swift /usr/local/.ghcup && sudo apt-get clean
-    - run: sudo apt-get update -qq && sudo apt-get install -y grub-efi-amd64-bin mtools imagemagick squashfs-tools git fdisk xorriso i3 feh rofi fonts-noto-color-emoji fonts-dejavu-core curl unzip minetest retroarch libretro-* linux-generic casper -qq
+    - run: sudo apt-get update -qq && sudo apt-get install -y grub-efi-amd64-bin mtools squashfs-tools git fdisk xorriso i3 feh rofi fonts-noto-color-emoji fonts-dejavu-core curl unzip minetest retroarch libretro-* linux-generic casper -qq
     - run: |
         set -e
         sudo rm -rf rootfs /tmp/kso_games
         sudo mkdir -p rootfs
         cd rootfs
         
-        sudo mkdir -p usr/share/plymouth/themes/kso etc/alternatives usr/share/backgrounds usr/bin etc/skel/.config/i3 etc/skel/.minetest
+        sudo mkdir -p usr/share/plymouth/themes/kso etc/alternatives usr/bin etc/skel/.config/i3 etc/skel/.minetest
         
         cat > /tmp/kso.plymouth << 'EOF'
         [Plymouth Theme]
@@ -27,14 +27,14 @@ jobs:
         sudo mv /tmp/kso.plymouth usr/share/plymouth/themes/kso/kso.plymouth
         sudo ln -sf /usr/share/plymouth/themes/kso/kso.plymouth etc/alternatives/default.plymouth
 
-        # <== شلنا Helvetica خالص. سيبناه يختار اي خط
-        sudo convert -size 1920x1080 xc:'#0F172A' -fill '#3B82F6' -pointsize 120 -gravity center -annotate +0-80 'KSO' usr/share/backgrounds/kso-wall.jpg
+        # <== شلنا imagemagick خالص. خلفية سادة كحلي
+        echo 'exec i3' | sudo tee etc/skel/.xinitrc > /dev/null
         
         echo 'systemctl poweroff' | sudo tee usr/bin/kso-shutdown > /dev/null
         sudo chmod +x usr/bin/kso-shutdown
         cat > /tmp/i3config << 'EOF'
         set $mod Mod4
-        exec --no-startup-id feh --bg-scale /usr/share/backgrounds/kso-wall.jpg
+        exec --no-startup-id xsetroot -solid '#0F172A'
         bindsym $mod+g exec retroarch
         bindsym $mod+q exec kso-shutdown
         bindsym $mod+d exec rofi -show drun
@@ -48,10 +48,20 @@ jobs:
         sudo mv /tmp/minetest.conf etc/skel/.minetest/minetest.conf
 
         sudo mkdir -p /tmp/kso_games/psx /tmp/kso_games/snes /tmp/kso_games/gba /tmp/kso_games/arcade
+        # 1. PSX: 3 العاب
         cd /tmp/kso_games/psx && sudo chmod 777 . && wget -q https://archive.org/download/PSX-Homebrew-Demos/PSXDoom.PBP -O Doom.PBP
+        cd /tmp/kso_games/psx && sudo chmod 777 . && wget -q https://archive.org/download/PSX-Homebrew-Demos/Duke.PBP -O Duke.PBP
+        cd /tmp/kso_games/psx && sudo chmod 777 . && wget -q https://archive.org/download/PSX-Homebrew-Demos/Wolf3D.PBP -O Wolf3D.PBP
+        # 2. SNES: 3 العاب
         cd /tmp/kso_games/snes && sudo chmod 777 . && wget -q https://archive.org/download/snes-homebrew/SNES-Tetris.sfc -O Tetris.sfc
+        cd /tmp/kso_games/snes && sudo chmod 777 . && wget -q https://archive.org/download/snes-homebrew/SuperMarioWorld.sfc -O Mario.sfc
+        cd /tmp/kso_games/snes && sudo chmod 777 . && wget -q https://archive.org/download/snes-homebrew/StreetFighter2.sfc -O SF2.sfc
+        # 3. GBA: 2 لعبة
         cd /tmp/kso_games/gba && sudo chmod 777 . && wget -q https://archive.org/download/gba-homebrew/CaveStory.gba -O CaveStory.gba
+        cd /tmp/kso_games/gba && sudo chmod 777 . && wget -q https://archive.org/download/gba-homebrew/Minesweeper.gba -O Mine.gba
+        # 4. Arcade: 2 لعبة
         cd /tmp/kso_games/arcade && sudo chmod 777 . && wget -q https://archive.org/download/mame-0.259-roms/arkanoid.zip -O Arkanoid.zip
+        cd /tmp/kso_games/arcade && sudo chmod 777 . && wget -q https://archive.org/download/mame-0.259-roms/pacman.zip -O Pacman.zip
         
         cd $GITHUB_WORKSPACE/rootfs
         sudo mkdir -p usr/share/games/kso
@@ -64,5 +74,5 @@ jobs:
         sudo xorriso -as mkisofs -o KSO-FUN-LIVE.iso -isohybrid-gpt-basdat -eltorito-alt-boot -e BOOTX64.EFI -no-emul-boot -graft-points /boot/grub= isohybrid/ /casper/filesystem.squashfs=isohybrid/filesystem.squashfs /casper/vmlinuz=isohybrid/vmlinuz /casper/initrd=isohybrid/initrd -V "KSO_LIVE".
     - uses: actions/upload-artifact@v4
       with:
-        name: KSO-FUN-LIVE-V18.7
+        name: KSO-FUN-LIVE-V19.0
         path: KSO-FUN-LIVE.iso
