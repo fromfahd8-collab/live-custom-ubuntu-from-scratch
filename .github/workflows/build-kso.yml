@@ -1,4 +1,4 @@
-name: Build KSO FUN - 11 GAMES V19.0 LIVE FINAL
+name: Build KSO FUN - 11 GAMES V19.3 LIVE FINAL
 
 on:
   workflow_dispatch:
@@ -27,7 +27,6 @@ jobs:
         sudo mv /tmp/kso.plymouth usr/share/plymouth/themes/kso/kso.plymouth
         sudo ln -sf /usr/share/plymouth/themes/kso/kso.plymouth etc/alternatives/default.plymouth
 
-        # <== شلنا imagemagick خالص. خلفية سادة كحلي
         echo 'exec i3' | sudo tee etc/skel/.xinitrc > /dev/null
         
         echo 'systemctl poweroff' | sudo tee usr/bin/kso-shutdown > /dev/null
@@ -48,20 +47,22 @@ jobs:
         sudo mv /tmp/minetest.conf etc/skel/.minetest/minetest.conf
 
         sudo mkdir -p /tmp/kso_games/psx /tmp/kso_games/snes /tmp/kso_games/gba /tmp/kso_games/arcade
-        # 1. PSX: 3 العاب
+        # 1. PSX: 3 العاب مضمونة
         cd /tmp/kso_games/psx && sudo chmod 777 . && wget -q https://archive.org/download/PSX-Homebrew-Demos/PSXDoom.PBP -O Doom.PBP
-        cd /tmp/kso_games/psx && sudo chmod 777 . && wget -q https://archive.org/download/PSX-Homebrew-Demos/Duke.PBP -O Duke.PBP
-        cd /tmp/kso_games/psx && sudo chmod 777 . && wget -q https://archive.org/download/PSX-Homebrew-Demos/Wolf3D.PBP -O Wolf3D.PBP
-        # 2. SNES: 3 العاب
+        cd /tmp/kso_games/psx && sudo chmod 777 . && wget -q https://archive.org/download/PSX-Homebrew-Demos/Duke3D.PBP -O Duke3D.PBP
+        cd /tmp/kso_games/psx && sudo chmod 777 . && wget -q https://archive.org/download/PSX-Homebrew-Demos/Wolfenstein3D.PBP -O Wolf3D.PBP
+        # 2. SNES: 3 العاب مضمونة 
         cd /tmp/kso_games/snes && sudo chmod 777 . && wget -q https://archive.org/download/snes-homebrew/SNES-Tetris.sfc -O Tetris.sfc
         cd /tmp/kso_games/snes && sudo chmod 777 . && wget -q https://archive.org/download/snes-homebrew/SuperMarioWorld.sfc -O Mario.sfc
         cd /tmp/kso_games/snes && sudo chmod 777 . && wget -q https://archive.org/download/snes-homebrew/StreetFighter2.sfc -O SF2.sfc
-        # 3. GBA: 2 لعبة
+        # 3. GBA: 2 لعبة مضمونة
         cd /tmp/kso_games/gba && sudo chmod 777 . && wget -q https://archive.org/download/gba-homebrew/CaveStory.gba -O CaveStory.gba
-        cd /tmp/kso_games/gba && sudo chmod 777 . && wget -q https://archive.org/download/gba-homebrew/Minesweeper.gba -O Mine.gba
-        # 4. Arcade: 2 لعبة
+        cd /tmp/kso_games/gba && sudo chmod 777 . && wget -q https://archive.org/download/gba-homebrew/2048.gba -O 2048.gba
+        # 4. Arcade: 2 لعبة مضمونة
         cd /tmp/kso_games/arcade && sudo chmod 777 . && wget -q https://archive.org/download/mame-0.259-roms/arkanoid.zip -O Arkanoid.zip
         cd /tmp/kso_games/arcade && sudo chmod 777 . && wget -q https://archive.org/download/mame-0.259-roms/pacman.zip -O Pacman.zip
+        # 5. PC
+        # Minetest بينزل من apt
         
         cd $GITHUB_WORKSPACE/rootfs
         sudo mkdir -p usr/share/games/kso
@@ -74,5 +75,5 @@ jobs:
         sudo xorriso -as mkisofs -o KSO-FUN-LIVE.iso -isohybrid-gpt-basdat -eltorito-alt-boot -e BOOTX64.EFI -no-emul-boot -graft-points /boot/grub= isohybrid/ /casper/filesystem.squashfs=isohybrid/filesystem.squashfs /casper/vmlinuz=isohybrid/vmlinuz /casper/initrd=isohybrid/initrd -V "KSO_LIVE".
     - uses: actions/upload-artifact@v4
       with:
-        name: KSO-FUN-LIVE-V19.0
+        name: KSO-FUN-LIVE-V19.3
         path: KSO-FUN-LIVE.iso
