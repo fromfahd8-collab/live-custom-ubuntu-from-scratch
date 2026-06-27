@@ -1,4 +1,4 @@
-name: Build KSO FUN - 11 GAMES V20.6 LS CHECK
+name: Build KSO FUN - 11 GAMES V20.7 FINAL
 
 on:
   workflow_dispatch:
@@ -69,7 +69,7 @@ jobs:
         download "https://archive.org/download/mame-0.259-roms/pacman.zip" "arcade/Pacman.zip" "https://archive.org/download/mame-2003-roms/pacman.zip"
         set -e
         
-        echo "====== KSO GAME REPORT V20.6 ======"
+        echo "====== KSO GAME REPORT V20.7 ======"
         find /tmp/kso_games -type f -printf "%s bytes  %p\n" | sort
         echo "SUCCESS:" $(find /tmp/kso_games -type f | wc -l) "/ 11"
         echo "==================================="
@@ -77,29 +77,24 @@ jobs:
         cd $GITHUB_WORKSPACE/rootfs
         sudo mkdir -p usr/share/games/kso
         sudo cp -r /tmp/kso_games/* usr/share/games/kso/
+        sudo chown -R runner:runner usr/share/games/kso # <== الحل: غير الملكية لل runner
+        ls -lh usr/share/games/kso # <== اتأكد ان الملفات مش 0
         sudo mksquashfs . filesystem.squashfs -comp xz
-        sudo ls -lh filesystem.squashfs # <== اتأكد ب sudo
+        ls -lh filesystem.squashfs # <== لازم يبقى 200M+
 
-    - name: Create ISO - V20.6 FIX
+    - name: Create ISO - V20.7 FIX
       run: |
         cd $GITHUB_WORKSPACE
         sudo rm -f isohybrid
         sudo rm -rf isohybrid 
         sudo mkdir isohybrid
-        ls -ld isohybrid
         
         KERNEL=$(ls /boot/vmlinuz-* | head -n 1)
         INITRD=$(ls /boot/initrd.img-* | head -n 1)
-        echo "Using KERNEL: $KERNEL"
-        echo "Using INITRD: $INITRD"
-        
         sudo cp $KERNEL isohybrid/vmlinuz
         sudo cp $INITRD isohybrid/initrd 
-        
-        # <== الحل: نتأكد بالـ ls ان الملف موجود وبعدين ننسخه ب sudo
-        sudo ls -lh rootfs/filesystem.squashfs 
         sudo cp rootfs/filesystem.squashfs isohybrid/
-        ls -lh isohybrid/ # <== اتأكد انه اتنسخ
+        ls -lh isohybrid/ # <== لازم filesystem يبقى 200M+
         
         echo 'menuentry "KSO" { linux /vmlinuz boot=casper quiet splash }' | sudo tee isohybrid/grub.cfg
         sudo cp /usr/lib/grub/x86_64-efi/monolithic/grubx64.efi isohybrid/BOOTX64.EFI
@@ -108,5 +103,5 @@ jobs:
     - name: Upload ISO
       uses: actions/upload-artifact@v4
       with:
-        name: KSO-FUN-LIVE-V20.6
+        name: KSO-FUN-LIVE-V20.7
         path: KSO-FUN-LIVE.iso
