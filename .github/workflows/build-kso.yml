@@ -1,4 +1,4 @@
-name: Build KSO FUN - 11 GAMES V20 ALL SUCCESS
+name: Build KSO FUN - 11 GAMES V20.2 FINAL
 
 on:
   workflow_dispatch:
@@ -8,9 +8,14 @@ jobs:
     runs-on: ubuntu-22.04
     timeout-minutes: 360
     steps:
-    - run: sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /usr/share/swift /usr/local/.ghcup && sudo apt-get clean
-    - run: sudo apt-get update -qq && sudo apt-get install -y grub-efi-amd64-bin mtools squashfs-tools git fdisk xorriso i3 feh rofi fonts-noto-color-emoji fonts-dejavu-core curl unzip minetest retroarch libretro-* linux-generic casper -qq
-    - run: |
+    - name: Free Disk Space
+      run: sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /usr/share/swift /usr/local/.ghcup && sudo apt-get clean
+
+    - name: Install Tools
+      run: sudo apt-get update -qq && sudo apt-get install -y grub-efi-amd64-bin mtools squashfs-tools git fdisk xorriso i3 feh rofi fonts-noto-color-emoji fonts-dejavu-core curl unzip minetest retroarch libretro-* linux-generic casper -qq
+
+    - name: Build RootFS + Download 11 Games
+      run: |
         set -e
         sudo rm -rf rootfs /tmp/kso_games
         sudo mkdir -p rootfs
@@ -45,14 +50,16 @@ jobs:
         EOF
         sudo mv /tmp/minetest.conf etc/skel/.minetest/minetest.conf
 
+        # ========= تحميل الالعاب بدون Permission denied =========
         set +e 
-        sudo mkdir -p /tmp/kso_games/psx /tmp/kso_games/snes /tmp/kso_games/gba /tmp/kso_games/arcade
+        mkdir -p /tmp/kso_games/psx /tmp/kso_games/snes /tmp/kso_games/gba /tmp/kso_games/arcade # بدون sudo
+        chmod -R 777 /tmp/kso_games # افتح الصلاحيات
         cd /tmp/kso_games
         
         # دالة تنزيل ب 3 محاولات + لينك بديل
-        download() { for i in 1 2 3; do wget -T 10 -t 1 -q $1 -O $2 && return 0 || sleep 2; done; wget -T 10 -t 1 -q $3 -O $2 || return 0; }
+        download() { for i in 1 2 3; do wget -T 15 -t 1 -q $1 -O $2 && return 0 || sleep 2; done; wget -T 15 -t 1 -q $3 -O $2 || return 0; }
         
-        # 1. PSX: 3 العاب - لينك اساسي + بديل
+        # 1. PSX: 3 العاب
         download "https://archive.org/download/PSX-Homebrew-Demos/PSXDoom.PBP" "psx/Doom.PBP" "https://archive.org/download/psx-homebrew/PSXDoom.PBP"
         download "https://archive.org/download/PSX-Homebrew-Demos/Duke3D.PBP" "psx/Duke3D.PBP" "https://archive.org/download/psx-homebrew/Duke3D.PBP"
         download "https://archive.org/download/PSX-Homebrew-Demos/Wolfenstein3D.PBP" "psx/Wolfenstein3D.PBP" "https://archive.org/download/psx-homebrew/Wolfenstein3D.PBP"
@@ -68,24 +75,30 @@ jobs:
         download "https://archive.org/download/mame-0.259-roms/pacman.zip" "arcade/Pacman.zip" "https://archive.org/download/mame-2003-roms/pacman.zip"
         set -e
         
-        # <== التقرير الكامل
-        echo "====== KSO GAME REPORT V20 ======"
+        # ========= تقرير كامل =========
+        echo "====== KSO GAME REPORT V20.2 ======"
         find /tmp/kso_games -type f -printf "%s bytes  %p\n" | sort
         echo "SUCCESS:" $(find /tmp/kso_games -type f | wc -l) "/ 11"
         echo "MISSING:" $(find /tmp/kso_games -type f | wc -l | xargs -I {} echo $((11-{})))
-        echo "================================="
+        echo "==================================="
         
         cd $GITHUB_WORKSPACE/rootfs
         sudo mkdir -p usr/share/games/kso
         sudo cp -r /tmp/kso_games/* usr/share/games/kso/
         sudo mksquashfs . filesystem.squashfs -comp xz
-    - run: |
+
+    - name: Create ISO
+      run: |
         sudo rm -rf isohybrid
-        sudo mkdir -p isohybrid && sudo cp /boot/vmlinuz-* isohybrid/vmlinuz && sudo cp /boot/initrd.img-* isohybrid/initrd && sudo cp filesystem.squashfs isohybrid/
-        echo 'menuentry "KSO" { linux /vmlinuz boot=casper }' | sudo tee isohybrid/grub.cfg
+        sudo mkdir -p isohybrid
+        test -d isohybrid || { echo "isohybrid is not a dir"; exit 1; } # ضمان عدم تكرار exit 5
+        sudo cp /boot/vmlinuz-* isohybrid/vmlinuz && sudo cp /boot/initrd.img-* isohybrid/initrd && sudo cp filesystem.squashfs isohybrid/
+        echo 'menuentry "KSO" { linux /vmlinuz boot=casper quiet splash }' | sudo tee isohybrid/grub.cfg
         sudo cp /usr/lib/grub/x86_64-efi/monolithic/grubx64.efi isohybrid/BOOTX64.EFI
         sudo xorriso -as mkisofs -o KSO-FUN-LIVE.iso -isohybrid-gpt-basdat -eltorito-alt-boot -e BOOTX64.EFI -no-emul-boot -graft-points /boot/grub= isohybrid/ /casper/filesystem.squashfs=isohybrid/filesystem.squashfs /casper/vmlinuz=isohybrid/vmlinuz /casper/initrd=isohybrid/initrd -V "KSO_LIVE".
-    - uses: actions/upload-artifact@v4
+
+    - name: Upload ISO
+      uses: actions/upload-artifact@v4
       with:
-        name: KSO-FUN-LIVE-V20
+        name: KSO-FUN-LIVE-V20.2
         path: KSO-FUN-LIVE.iso
