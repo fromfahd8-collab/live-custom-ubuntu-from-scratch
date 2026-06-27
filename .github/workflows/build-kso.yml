@@ -1,4 +1,4 @@
-name: Build KSO FUN - 11 GAMES V21.4 WORKING
+name: Build KSO FUN - 11 GAMES V21.5 FINAL FIX
 
 on:
   workflow_dispatch:
@@ -11,11 +11,11 @@ jobs:
     - name: Free Disk Space
       run: sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /usr/share/swift /usr/local/.ghcup && sudo apt-get clean
 
-    - name: Install Tools V21.4
+    - name: Install Tools V21.5
       run: |
         sudo add-apt-repository ppa:libretro/stable -y
         sudo apt-get update -qq
-        sudo apt-get install -y grub-efi-amd64-bin mtools squashfs-tools git fdisk xorriso i3 feh rofi fonts-noto-color-emoji fonts-dejavu-core curl unzip minetest retroarch libretro-snes9x libretro-gambatte linux-generic casper -qq # <== شلنا PSX/MAME/Genesis
+        sudo apt-get install -y grub-efi-amd64-bin mtools squashfs-tools git fdisk xorriso i3 feh rofi fonts-noto-color-emoji fonts-dejavu-core curl unzip minetest retroarch libretro-snes9x libretro-gambatte linux-generic casper -qq
 
     - name: Build RootFS + Download 11 Games
       run: |
@@ -54,12 +54,12 @@ jobs:
         mv /tmp/minetest.conf etc/skel/.minetest/minetest.conf
 
         set +e 
-        mkdir -p /tmp/kso_games/snes /tmp/kso_games/gba # <== SNES + GBA بس
+        mkdir -p /tmp/kso_games/snes /tmp/kso_games/gba
         cd /tmp/kso_games
         
         download() { echo "TRYING: $2"; curl -L -m 30 -s -o $2 $1 && [ -s $2 ] && echo "OK: $2" && return 0 || echo "FAIL: $2"; }
         
-        # SNES Homebrew x6
+        # SNES x6
         download "https://github.com/snes-homebrew/roms/raw/main/Tetris.sfc" "snes/Tetris.sfc"
         download "https://github.com/snes-homebrew/roms/raw/main/SMW.sfc" "snes/Mario.sfc"
         download "https://github.com/snes-homebrew/roms/raw/main/SF2.sfc" "snes/SF2.sfc"
@@ -67,7 +67,7 @@ jobs:
         download "https://github.com/snes-homebrew/roms/raw/main/Pong.sfc" "snes/Pong.sfc"
         download "https://github.com/snes-homebrew/roms/raw/main/Tanks.sfc" "snes/Tanks.sfc"
         
-        # GBA Homebrew x5
+        # GBA x5
         download "https://github.com/gba-homebrew/roms/raw/main/CaveStory.gba" "gba/CaveStory.gba"
         download "https://github.com/gba-homebrew/roms/raw/main/2048.gba" "gba/2048.gba"
         download "https://github.com/gba-homebrew/roms/raw/main/FlappyBird.gba" "gba/Flappy.gba"
@@ -75,41 +75,43 @@ jobs:
         download "https://github.com/gba-homebrew/roms/raw/main/Tetris.gba" "gba/Tetris.gba"
         set -e
         
-        echo "====== DEBUG LS /tmp/kso_games ======"
-        ls -lhR /tmp/kso_games
-        
-        echo "====== KSO GAME REPORT V21.4 ======"
+        echo "====== KSO GAME REPORT V21.5 ======"
         COUNT=$(find /tmp/kso_games -type f -size +1k | wc -l)
         echo "SUCCESS: $COUNT / 11"
         if [ "$COUNT" -lt "11" ]; then echo "ERROR: Missing games, aborting"; exit 1; fi
-        echo "==================================="
         
         cd $GITHUB_WORKSPACE/rootfs
         mkdir -p usr/share/games/kso
         cp -r /tmp/kso_games/* usr/share/games/kso/
-        ls -lh usr/share/games/kso
         mksquashfs . filesystem.squashfs -comp xz
         ls -lh filesystem.squashfs
 
-    - name: Create ISO - V21.4 FIX
+    - name: Create ISO - V21.5 FIX
       run: |
         cd $GITHUB_WORKSPACE
         rm -rf isohybrid
-        mkdir isohybrid
+        mkdir -p isohybrid/boot/grub # <== الحل: نعمل فولدر grub
         
         KERNEL=$(ls /boot/vmlinuz-* | head -n 1)
         INITRD=$(ls /boot/initrd.img-* | head -n 1)
         sudo cp $KERNEL isohybrid/vmlinuz
         sudo cp $INITRD isohybrid/initrd 
         cp rootfs/filesystem.squashfs isohybrid/
-        ls -lh isohybrid/
         
-        echo 'menuentry "KSO" { linux /vmlinuz boot=casper quiet splash }' | tee isohybrid/grub.cfg
+        echo 'menuentry "KSO" { linux /vmlinuz boot=casper quiet splash }' | tee isohybrid/boot/grub/grub.cfg # <== هنا جوه grub
         sudo cp /usr/lib/grub/x86_64-efi/monolithic/grubx64.efi isohybrid/BOOTX64.EFI
-        sudo xorriso -as mkisofs -o KSO-FUN-LIVE.iso -isohybrid-gpt-basdat -eltorito-alt-boot -e BOOTX64.EFI -no-emul-boot -graft-points /boot/grub= isohybrid/ /casper/filesystem.squashfs=isohybrid/filesystem.squashfs /casper/vmlinuz=isohybrid/vmlinuz /casper/initrd=isohybrid/initrd -V "KSO_LIVE".
+        ls -lhR isohybrid/
+        
+        sudo xorriso -as mkisofs -o KSO-FUN-LIVE.iso \
+        -isohybrid-gpt-basdat -eltorito-alt-boot -e BOOTX64.EFI -no-emul-boot \
+        -graft-points /boot/grub/grub.cfg=isohybrid/boot/grub/grub.cfg \ # <== صلحنا المسار
+        /casper/filesystem.squashfs=isohybrid/filesystem.squashfs \
+        /casper/vmlinuz=isohybrid/vmlinuz \
+        /casper/initrd=isohybrid/initrd \
+        -V "KSO_LIVE" isohybrid/ # <== ضفنا isohybrid/ في الاخر
 
     - name: Upload ISO
       uses: actions/upload-artifact@v4
       with:
-        name: KSO-FUN-LIVE-V21.4
+        name: KSO-FUN-LIVE-V21.5
         path: KSO-FUN-LIVE.iso
