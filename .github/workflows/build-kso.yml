@@ -1,4 +1,4 @@
-name: Build KSO FUN - 11 GAMES V20.7 FINAL
+name: Build KSO FUN - 11 GAMES V20.8 NO-SUDO SQUASH
 
 on:
   workflow_dispatch:
@@ -18,10 +18,10 @@ jobs:
       run: |
         set -e
         sudo rm -rf rootfs /tmp/kso_games
-        sudo mkdir -p rootfs
+        mkdir -p rootfs # <== بدون sudo
         cd rootfs
         
-        sudo mkdir -p usr/share/plymouth/themes/kso etc/alternatives usr/bin etc/skel/.config/i3 etc/skel/.minetest
+        mkdir -p usr/share/plymouth/themes/kso etc/alternatives usr/bin etc/skel/.config/i3 etc/skel/.minetest
         
         cat > /tmp/kso.plymouth << 'EOF'
         [Plymouth Theme]
@@ -29,12 +29,12 @@ jobs:
         Description=برمجة عبد الله و عبد الرحمن هاني [ kso ]
         ModuleName=script
         EOF
-        sudo mv /tmp/kso.plymouth usr/share/plymouth/themes/kso/kso.plymouth
-        sudo ln -sf /usr/share/plymouth/themes/kso/kso.plymouth etc/alternatives/default.plymouth
+        mv /tmp/kso.plymouth usr/share/plymouth/themes/kso/kso.plymouth
+        ln -sf /usr/share/plymouth/themes/kso/kso.plymouth etc/alternatives/default.plymouth
 
-        echo 'exec i3' | sudo tee etc/skel/.xinitrc > /dev/null
-        echo 'systemctl poweroff' | sudo tee usr/bin/kso-shutdown > /dev/null
-        sudo chmod +x usr/bin/kso-shutdown
+        echo 'exec i3' | tee etc/skel/.xinitrc > /dev/null
+        echo 'systemctl poweroff' | tee usr/bin/kso-shutdown > /dev/null
+        chmod +x usr/bin/kso-shutdown
         cat > /tmp/i3config << 'EOF'
         set $mod Mod4
         exec --no-startup-id xsetroot -solid '#0F172A'
@@ -42,17 +42,16 @@ jobs:
         bindsym $mod+q exec kso-shutdown
         bindsym $mod+d exec rofi -show drun
         EOF
-        sudo mv /tmp/i3config etc/skel/.config/i3/config
+        mv /tmp/i3config etc/skel/.config/i3/config
 
         cat > /tmp/minetest.conf << 'EOF'
         video_driver = opengl
         fps_max = 60
         EOF
-        sudo mv /tmp/minetest.conf etc/skel/.minetest/minetest.conf
+        mv /tmp/minetest.conf etc/skel/.minetest/minetest.conf
 
         set +e 
         mkdir -p /tmp/kso_games/psx /tmp/kso_games/snes /tmp/kso_games/gba /tmp/kso_games/arcade
-        chmod -R 777 /tmp/kso_games
         cd /tmp/kso_games
         
         download() { for i in 1 2 3; do wget -T 15 -t 1 -q $1 -O $2 && return 0 || sleep 2; done; wget -T 15 -t 1 -q $3 -O $2 || return 0; }
@@ -69,39 +68,37 @@ jobs:
         download "https://archive.org/download/mame-0.259-roms/pacman.zip" "arcade/Pacman.zip" "https://archive.org/download/mame-2003-roms/pacman.zip"
         set -e
         
-        echo "====== KSO GAME REPORT V20.7 ======"
+        echo "====== KSO GAME REPORT V20.8 ======"
         find /tmp/kso_games -type f -printf "%s bytes  %p\n" | sort
         echo "SUCCESS:" $(find /tmp/kso_games -type f | wc -l) "/ 11"
         echo "==================================="
         
         cd $GITHUB_WORKSPACE/rootfs
-        sudo mkdir -p usr/share/games/kso
-        sudo cp -r /tmp/kso_games/* usr/share/games/kso/
-        sudo chown -R runner:runner usr/share/games/kso # <== الحل: غير الملكية لل runner
-        ls -lh usr/share/games/kso # <== اتأكد ان الملفات مش 0
-        sudo mksquashfs . filesystem.squashfs -comp xz
-        ls -lh filesystem.squashfs # <== لازم يبقى 200M+
+        mkdir -p usr/share/games/kso # <== بدون sudo
+        cp -r /tmp/kso_games/* usr/share/games/kso/ # <== بدون sudo
+        ls -lh usr/share/games/kso # <== اتأكد
+        mksquashfs . filesystem.squashfs -comp xz # <== بدون sudo = الحل
+        ls -lh filesystem.squashfs # <== لازم 200M+
 
-    - name: Create ISO - V20.7 FIX
+    - name: Create ISO - V20.8 FIX
       run: |
         cd $GITHUB_WORKSPACE
-        sudo rm -f isohybrid
-        sudo rm -rf isohybrid 
-        sudo mkdir isohybrid
+        rm -rf isohybrid # <== بدون sudo
+        mkdir isohybrid
         
         KERNEL=$(ls /boot/vmlinuz-* | head -n 1)
         INITRD=$(ls /boot/initrd.img-* | head -n 1)
-        sudo cp $KERNEL isohybrid/vmlinuz
+        sudo cp $KERNEL isohybrid/vmlinuz # <== sudo هنا عادي عشان /boot
         sudo cp $INITRD isohybrid/initrd 
-        sudo cp rootfs/filesystem.squashfs isohybrid/
-        ls -lh isohybrid/ # <== لازم filesystem يبقى 200M+
+        cp rootfs/filesystem.squashfs isohybrid/ # <== بدون sudo
+        ls -lh isohybrid/ # <== لازم 3 ملفات + 200M+
         
-        echo 'menuentry "KSO" { linux /vmlinuz boot=casper quiet splash }' | sudo tee isohybrid/grub.cfg
+        echo 'menuentry "KSO" { linux /vmlinuz boot=casper quiet splash }' | tee isohybrid/grub.cfg
         sudo cp /usr/lib/grub/x86_64-efi/monolithic/grubx64.efi isohybrid/BOOTX64.EFI
         sudo xorriso -as mkisofs -o KSO-FUN-LIVE.iso -isohybrid-gpt-basdat -eltorito-alt-boot -e BOOTX64.EFI -no-emul-boot -graft-points /boot/grub= isohybrid/ /casper/filesystem.squashfs=isohybrid/filesystem.squashfs /casper/vmlinuz=isohybrid/vmlinuz /casper/initrd=isohybrid/initrd -V "KSO_LIVE".
 
     - name: Upload ISO
       uses: actions/upload-artifact@v4
       with:
-        name: KSO-FUN-LIVE-V20.7
+        name: KSO-FUN-LIVE-V20.8
         path: KSO-FUN-LIVE.iso
