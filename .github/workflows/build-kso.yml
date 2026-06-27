@@ -1,4 +1,4 @@
-name: Build KSO FUN - 11 GAMES V18.1 LIVE FINAL
+name: Build KSO FUN - 11 GAMES V18.2 LIVE FINAL
 
 on:
   workflow_dispatch:
@@ -19,10 +19,11 @@ jobs:
     - name: Build KSO System From Scratch
       run: |
         set -e
-        sudo rm -rf rootfs
+        sudo rm -rf rootfs /tmp/kso_games
         sudo mkdir -p rootfs
         cd rootfs
         
+        # KSO Theme
         sudo mkdir -p usr/share/plymouth/themes/kso etc/alternatives
         echo '[Plymouth Theme]
         Name=KSO-GamerOS-FUN
@@ -47,9 +48,11 @@ jobs:
         ModuleName=script' | sudo tee usr/share/plymouth/themes/kso/kso.plymouth
         sudo ln -sf /usr/share/plymouth/themes/kso/kso.plymouth etc/alternatives/default.plymouth
 
+        # Wallpaper
         sudo mkdir -p usr/share/backgrounds
         sudo convert -size 1920x1080 xc:'#0F172A' -fill '#3B82F6' -font DejaVu-Sans -pointsize 120 -gravity center -annotate +0-80 'KSO' -fill white -pointsize 40 -annotate +0+40 'برمجة عبد الله و عبد الرحمن هاني' -fill '#60A5FA' -pointsize 30 -annotate +0+90 '11 GAMES LIVE' usr/share/backgrounds/kso-wall.jpg
 
+        # i3
         sudo mkdir -p usr/bin etc/skel/.config/i3
         echo '#!/bin/bash
         systemctl poweroff' | sudo tee usr/bin/kso-shutdown && sudo chmod +x usr/bin/kso-shutdown
@@ -63,6 +66,7 @@ jobs:
         gaps inner 8
         client.focused #3B82F6 #1E293B #FFFFFF #3B82F6' | sudo tee etc/skel/.config/i3/config
 
+        # Minetest
         sudo mkdir -p etc/skel/.minetest
         echo 'video_driver = opengl
         enable_shaders = false
@@ -72,17 +76,35 @@ jobs:
         fps_max = 60
         render_distance = 50' | sudo tee etc/skel/.minetest/minetest.conf
 
+        # Games - سطر سطر عشان ميبقاش فيه لزق
         sudo mkdir -p /tmp/kso_games/psx /tmp/kso_games/snes /tmp/kso_games/gba /tmp/kso_games/arcade
-        cd /tmp/kso_games
-        cd psx && wget -q --tries=3 https://archive.org/download/PSX-Homebrew-Demos/PSXDoom.PBP -O Doom.PBP && wget -q --tries=3 https://archive.org/download/psx-homebrew/DukeNukem.PBP -O Duke.PBP && wget -q --tries=3 https://archive.org/download/psx-homebrew/Wolf3D.PBP -O Wolf3D.PBP && sudo chmod 644 *.PBP # <- صلح الصلاحيات
-        cd../snes && wget -q --tries=3 https://archive.org/download/snes-homebrew/SNES-Tetris.sfc -O Tetris.sfc && wget -q --tries=3 https://archive.org/download/snes-homebrew/SuperMarioWorld.sfc -O Mario.sfc && wget -q --tries=3 https://archive.org/download/snes-homebrew/StreetFighter2.sfc -O SF2.sfc && sudo chmod 644 *.sfc # <- cd../ بمسافة
-        cd../gba && wget -q --tries=3 https://archive.org/download/gba-homebrew/CaveStory.gba -O CaveStory.gba && wget -q --tries=3 https://archive.org/download/gba-homebrew/2004-mine.gba -O Mine.gba && sudo chmod 644 *.gba
-        cd../arcade && wget -q --tries=3 https://archive.org/download/mame-0.259-roms/arkanoid.zip -O Arkanoid.zip && wget -q --tries=3 https://archive.org/download/mame-0.259-roms/pacman.zip -O Pacman.zip && sudo chmod 644 *.zip
+        cd /tmp/kso_games/psx
+        wget -q --tries=3 https://archive.org/download/PSX-Homebrew-Demos/PSXDoom.PBP -O Doom.PBP
+        wget -q --tries=3 https://archive.org/download/psx-homebrew/DukeNukem.PBP -O Duke.PBP
+        wget -q --tries=3 https://archive.org/download/psx-homebrew/Wolf3D.PBP -O Wolf3D.PBP
+        sudo chmod 644 *.PBP
         
+        cd /tmp/kso_games/snes
+        wget -q --tries=3 https://archive.org/download/snes-homebrew/SNES-Tetris.sfc -O Tetris.sfc
+        wget -q --tries=3 https://archive.org/download/snes-homebrew/SuperMarioWorld.sfc -O Mario.sfc
+        wget -q --tries=3 https://archive.org/download/snes-homebrew/StreetFighter2.sfc -O SF2.sfc
+        sudo chmod 644 *.sfc
+        
+        cd /tmp/kso_games/gba
+        wget -q --tries=3 https://archive.org/download/gba-homebrew/CaveStory.gba -O CaveStory.gba
+        wget -q --tries=3 https://archive.org/download/gba-homebrew/2004-mine.gba -O Mine.gba
+        sudo chmod 644 *.gba
+        
+        cd /tmp/kso_games/arcade
+        wget -q --tries=3 https://archive.org/download/mame-0.259-roms/arkanoid.zip -O Arkanoid.zip
+        wget -q --tries=3 https://archive.org/download/mame-0.259-roms/pacman.zip -O Pacman.zip
+        sudo chmod 644 *.zip
+        
+        # Squashfs - مسافة صح 100%
         cd $GITHUB_WORKSPACE/rootfs
         sudo mkdir -p usr/share/games/kso
         sudo cp -r /tmp/kso_games/* usr/share/games/kso/
-        sudo mksquashfs.../filesystem.squashfs -comp xz -b 1024K # <- مسافة قبل..
+        sudo mksquashfs. filesystem.squashfs -comp xz -b 1024K
 
     - name: Make LIVE ISO with xorriso
       run: |
@@ -101,5 +123,5 @@ jobs:
     - name: Upload ISO
       uses: actions/upload-artifact@v4
       with:
-        name: KSO-FUN-LIVE-V18.1
+        name: KSO-FUN-LIVE-V18.2
         path: KSO-FUN-LIVE.iso
