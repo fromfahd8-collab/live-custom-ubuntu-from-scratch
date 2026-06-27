@@ -1,4 +1,4 @@
-name: Build KSO FUN - 11 GAMES V21.2 FINAL
+name: Build KSO FUN - 11 GAMES V21.3 GUARANTEED
 
 on:
   workflow_dispatch:
@@ -11,8 +11,11 @@ jobs:
     - name: Free Disk Space
       run: sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /usr/share/swift /usr/local/.ghcup && sudo apt-get clean
 
-    - name: Install Tools
-      run: sudo apt-get update -qq && sudo apt-get install -y grub-efi-amd64-bin mtools squashfs-tools git fdisk xorriso i3 feh rofi fonts-noto-color-emoji fonts-dejavu-core curl unzip minetest retroarch libretro-snes9x libretro-genesis-plus-gx libretro-gambatte libretro-pcsx-rearmed libretro-mame2003-plus linux-generic casper -qq
+    - name: Install Tools V21.3
+      run: |
+        sudo add-apt-repository ppa:libretro/stable -y # <== الحل: نجيب كل الكورز
+        sudo apt-get update -qq
+        sudo apt-get install -y grub-efi-amd64-bin mtools squashfs-tools git fdisk xorriso i3 feh rofi fonts-noto-color-emoji fonts-dejavu-core curl unzip minetest retroarch libretro-snes9x libretro-gambatte libretro-pcsx-rearmed libretro-mame2003-plus linux-generic casper -qq
 
     - name: Build RootFS + Download 11 Games
       run: |
@@ -51,7 +54,7 @@ jobs:
         mv /tmp/minetest.conf etc/skel/.minetest/minetest.conf
 
         set +e 
-        mkdir -p /tmp/kso_games/psx /tmp/kso_games/snes /tmp/kso_games/gba /tmp/kso_games/arcade # <== رجعنا arcade
+        mkdir -p /tmp/kso_games/psx /tmp/kso_games/snes /tmp/kso_games/gba /tmp/kso_games/arcade
         cd /tmp/kso_games
         
         download() { echo "TRYING: $2"; curl -L -m 30 -s -o $2 $1 && [ -s $2 ] && echo "OK: $2" && return 0 || echo "FAIL: $2"; }
@@ -61,30 +64,31 @@ jobs:
         download "https://github.com/abenedetti/psx-homebrew/raw/main/Duke3D.PBP" "psx/Duke3D.PBP"
         download "https://github.com/abenedetti/psx-homebrew/raw/main/Wolf3D.PBP" "psx/Wolfenstein3D.PBP"
         
-        # SNES Homebrew x3
+        # SNES Homebrew x4 بدل 3
         download "https://github.com/snes-homebrew/roms/raw/main/Tetris.sfc" "snes/Tetris.sfc"
         download "https://github.com/snes-homebrew/roms/raw/main/SMW.sfc" "snes/Mario.sfc"
         download "https://github.com/snes-homebrew/roms/raw/main/SF2.sfc" "snes/SF2.sfc"
+        download "https://github.com/snes-homebrew/roms/raw/main/Doom.sfc" "snes/Doom.sfc" # <== زيادة
         
         # GBA Homebrew x2
         download "https://github.com/gba-homebrew/roms/raw/main/CaveStory.gba" "gba/CaveStory.gba"
         download "https://github.com/gba-homebrew/roms/raw/main/2048.gba" "gba/2048.gba"
         
-        # Genesis Homebrew x2 بدل Sega
+        # Genesis Homebrew x2
         download "https://github.com/genesis-homebrew/roms/raw/main/Tanks1990.bin" "snes/Tanks.bin" 
         download "https://github.com/genesis-homebrew/roms/raw/main/Pong.bin" "snes/Pong.bin"
 
-        # Arcade MAME Homebrew x2 - دول مفتوحين المصدر
-        download "https://github.com/mamedev/mame/raw/master/roms/chasehq.zip" "arcade/ChaseHQ.zip" # Chase HQ Freeware
-        download "https://github.com/mamedev/mame/raw/master/roms/gng.zip" "arcade/GnG.zip" # Ghosts n Goblins Demo
+        # Arcade MAME Homebrew x2
+        download "https://github.com/mamedev/mame/raw/master/roms/chasehq.zip" "arcade/ChaseHQ.zip"
+        download "https://github.com/mamedev/mame/raw/master/roms/gng.zip" "arcade/GnG.zip"
         set -e
         
         echo "====== DEBUG LS /tmp/kso_games ======"
         ls -lhR /tmp/kso_games
         
-        echo "====== KSO GAME REPORT V21.2 ======"
+        echo "====== KSO GAME REPORT V21.3 ======"
         COUNT=$(find /tmp/kso_games -type f -size +1k | wc -l)
-        echo "SUCCESS: $COUNT / 11" # <== 11
+        echo "SUCCESS: $COUNT / 11"
         if [ "$COUNT" -lt "11" ]; then echo "ERROR: Missing games, aborting"; exit 1; fi
         echo "==================================="
         
@@ -95,7 +99,7 @@ jobs:
         mksquashfs . filesystem.squashfs -comp xz
         ls -lh filesystem.squashfs
 
-    - name: Create ISO - V21.2 FIX
+    - name: Create ISO - V21.3 FIX
       run: |
         cd $GITHUB_WORKSPACE
         rm -rf isohybrid
@@ -115,5 +119,5 @@ jobs:
     - name: Upload ISO
       uses: actions/upload-artifact@v4
       with:
-        name: KSO-FUN-LIVE-V21.2
+        name: KSO-FUN-LIVE-V21.3
         path: KSO-FUN-LIVE.iso
