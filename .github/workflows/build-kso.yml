@@ -1,4 +1,4 @@
-name: Build KSO FUN - 11 GAMES V18.6 LIVE FINAL
+name: Build KSO FUN - 11 GAMES V18.7 LIVE FINAL
 
 on:
   workflow_dispatch:
@@ -27,6 +27,7 @@ jobs:
         sudo mv /tmp/kso.plymouth usr/share/plymouth/themes/kso/kso.plymouth
         sudo ln -sf /usr/share/plymouth/themes/kso/kso.plymouth etc/alternatives/default.plymouth
 
+        # <== شلنا Helvetica خالص. سيبناه يختار اي خط
         sudo convert -size 1920x1080 xc:'#0F172A' -fill '#3B82F6' -pointsize 120 -gravity center -annotate +0-80 'KSO' usr/share/backgrounds/kso-wall.jpg
         
         echo 'systemctl poweroff' | sudo tee usr/bin/kso-shutdown > /dev/null
@@ -55,7 +56,7 @@ jobs:
         cd $GITHUB_WORKSPACE/rootfs
         sudo mkdir -p usr/share/games/kso
         sudo cp -r /tmp/kso_games/* usr/share/games/kso/
-        sudo mksquashfs . filesystem.squashfs -comp xz  # <== شلت النقطة الملزوقة هنا
+        sudo mksquashfs . filesystem.squashfs -comp xz
     - run: |
         sudo mkdir -p isohybrid && sudo cp /boot/vmlinuz-* isohybrid/vmlinuz && sudo cp /boot/initrd.img-* isohybrid/initrd && sudo cp filesystem.squashfs isohybrid/
         echo 'menuentry "KSO" { linux /vmlinuz boot=casper }' | sudo tee isohybrid/grub.cfg
@@ -63,5 +64,5 @@ jobs:
         sudo xorriso -as mkisofs -o KSO-FUN-LIVE.iso -isohybrid-gpt-basdat -eltorito-alt-boot -e BOOTX64.EFI -no-emul-boot -graft-points /boot/grub= isohybrid/ /casper/filesystem.squashfs=isohybrid/filesystem.squashfs /casper/vmlinuz=isohybrid/vmlinuz /casper/initrd=isohybrid/initrd -V "KSO_LIVE".
     - uses: actions/upload-artifact@v4
       with:
-        name: KSO-FUN-LIVE-V18.6
+        name: KSO-FUN-LIVE-V18.7
         path: KSO-FUN-LIVE.iso
