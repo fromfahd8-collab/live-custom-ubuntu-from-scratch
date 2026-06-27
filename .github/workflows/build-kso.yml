@@ -1,0 +1,111 @@
+name: Build KSO-AbyssOS 4.8GB HORROR V1.1
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 180
+    steps:
+      - name: 1. Free 20GB Disk Space - اهم خطوة
+        run: |
+          sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/share/boost /usr/local/lib/android /opt/hostedtoolcache/CodeQL
+          sudo docker system prune -af --volumes
+          sudo apt-get clean
+          df -h
+
+      - name: 2. Install Live-Build Tools
+        run: sudo apt-get update -qq && sudo apt-get install -y live-build debootstrap squashfs-tools xorriso wget git unzip espeak sox imagemagick sudo -qq
+
+      - name: 3. Configure AbyssOS
+        run: |
+          set -e
+          mkdir -p abyss && cd abyss
+          lb clean
+          lb config --architecture amd64 --distribution bookworm --archive-areas "main contrib non-free" --binary-images iso-hybrid --bootappend-live "boot=live components quiet splash" --debian-installer none --iso-volume "KSO_ABYSS" --iso-application "KSO-AbyssOS" --apt-indices false --apt-recommends false --apt-secure false
+
+          # 4. البرامج 500 ميجا بس
+          echo "i3-wm rofi pcmanfm vlc espeak sox xdotool scrot feh sudo plymouth plymouth-themes" > config/package-lists/kso.list.chroot
+
+          # 5. بوت 30 ثانية ملعون
+          mkdir -p config/includes.chroot/usr/share/plymouth/themes/kso-abyss
+          echo '[Plymouth Theme]
+Name=KSO-Abyss
+Description=برمجة بواسطة عبد الله و عبد الرحمن هاني رجب [ kso ]
+ModuleName=script' > config/includes.chroot/usr/share/plymouth/themes/kso-abyss/kso-abyss.plymouth
+          echo 'Window.SetBackgroundTopColor(0,0,0);
+for (i = 0; i < 300; i++) { if (i == 50) { flash = Image.Text("!!!", 1,1,1); flash_sprite = Sprite(flash); flash_sprite.SetX(Window.GetWidth()/2); flash_sprite.SetY(Window.GetHeight()/2); }
+text = Image.Text("برمجة بواسطة عبد الله و عبد الرحمن هاني رجب [ kso ]", 0.8,0,0); text_sprite = Sprite(text); text_sprite.SetPosition(Window.GetWidth()/2 - text.GetWidth()/2, Window.GetHeight() - 100);
+run = Image.Text("اهرب", 1,0,0); run_sprite = Sprite(run); run_sprite.SetPosition(Window.GetWidth()/2 - 50, 100);' > config/includes.chroot/usr/share/plymouth/themes/kso-abyss/kso.script
+
+          # 6. أصوات الرعب
+          mkdir -p config/includes.chroot/opt/kso-sounds
+          echo "play -n synth 0.3 sine 100 vol 0.4" > config/includes.chroot/opt/kso-sounds/whisper.sh
+          echo "play -n synth 0.15 sine 2000 vol 0.9" > config/includes.chroot/opt/kso-sounds/scream.sh
+          echo "play -n synth 5 sine 60 vol 0.2" > config/includes.chroot/opt/kso-sounds/heartbeat.sh
+          chmod +x config/includes.chroot/opt/kso-sounds/*.sh
+
+          # 7. نظام الـ JumpScare
+          echo '#!/bin/bash
+bash /opt/kso-sounds/heartbeat.sh &
+while true; do sleep $((RANDOM % 300 + 120)); type=$((RANDOM % 4)); case $type in 0) scrot /tmp/s.jpg; convert /tmp/s.jpg -fill red -gravity center -pointsize 150 -annotate 0 "لقد رأيتك" /tmp/s2.jpg; feh --fullscreen /tmp/s2.jpg & bash /opt/kso-sounds/scream.sh & sleep 0.15; pkill feh ;; 1) espeak -v ar -s 120 "وراك" & ;; 2) for i in {1..30}; do xdotool key F11; sleep 0.1; done ;; 3) echo "أنا في جهازك" > ~/Desktop/اقرأني.txt; xdg-open ~/Desktop/اقرأني.txt ;; esac; done' > config/includes.chroot/usr/bin/kso-jumpscare
+          chmod +x config/includes.chroot/usr/bin/kso-jumpscare
+
+          # 8. سكربت القفل السهل
+          echo '#!/bin/bash
+espeak -v ar "الوداع" & sleep 3; echo "برمجة بواسطة عبد الله و عبد الرحمن هاني رجب [ kso ]"; sudo systemctl poweroff' > config/includes.chroot/usr/bin/kso-shutdown
+          echo '#!/bin/bash
+sudo systemctl poweroff' > config/includes.chroot/usr/bin/kso-quickoff
+          chmod +x config/includes.chroot/usr/bin/kso-*.sh
+          
+          # 9. صلاحيات القفل من غير باسورد
+          mkdir -p config/includes.chroot/etc/sudoers.d
+          echo 'live ALL=(ALL) NOPASSWD: /usr/bin/systemctl poweroff, /usr/bin/kso-shutdown, /usr/bin/kso-quickoff' > config/includes.chroot/etc/sudoers.d/kso-nopasswd
+          chmod 0440 config/includes.chroot/etc/sudoers.d/kso-nopasswd
+
+          # 10. الـ 10 ألعاب رعب - 2.84 جيجا
+          mkdir -p config/includes.chroot/opt/kso-games && cd config/includes.chroot/opt/kso-games
+          wget -q https://github.com/jpcy/SCP-087-B/releases/download/v1.0/scp087b-linux.tar.gz && tar -xf *.tar.gz && mv scp087b "01-SCP087" && rm *.tar.gz
+          wget -q https://github.com/AchromaticMetal/IMSCARED-Linux/releases/download/v1.0/IMSCARED_Linux.zip && unzip -q *.zip && mv "IMSCARED" "02-IMSCARED" && rm *.zip
+          wget -q https://github.com/kittyhorrorshow/anatomy-linux/releases/download/v1.0/anatomy-linux.zip && unzip -q *.zip && mv "Anatomy" "03-Anatomy" && rm *.zip
+          wget -q https://github.com/SpookyHouse/Spookys-Jump-Scare-Mansion/releases/download/v3.0/sjsm-linux.tar.gz && tar -xf *.tar.gz && mv "SpookysJumpScareMansion" "04-Spookys" && rm *.tar.gz
+          wget -q https://github.com/rxdps/cryoffear/releases/download/v1.0/cof-linux.tar.xz && tar -xf *.tar.xz && mv "CryOfFear" "05-CryOfFear" && rm *.tar.xz
+          wget -q https://github.com/acidwizardstudio/darkwood/releases/download/v1.3/darkwood-linux.tar.gz && tar -xf *.tar.gz && mv "Darkwood" "06-Darkwood" && rm *.tar.gz
+          wget -q https://github.com/notanaverageman/WorldOfHorror/releases/download/v1.0/worldofhorror-linux.zip && unzip -q *.zip && mv "WorldOfHorror" "07-WOH" && rm *.zip
+          wget -q https://arbitrarycrisis.itch.io/paratopic/get/paratopic-linux.zip && unzip -q *.zip && mv "Paratopic" "08-Paratopic" && rm *.zip
+          wget -q https://notbruno.itch.io/the-static-speaks-my-name/get/tssmn-linux.zip && unzip -q *.zip && mv "TheStaticSpeaksMyName" "09-Static" && rm *.zip
+          wget -q https://aetherinteractive.itch.io/buddy-simulator-1984/get/bs1984-linux.zip && unzip -q *.zip && mv "BuddySimulator1984" "10-Buddy" && rm *.zip
+          cd /root/abyss
+
+          # 11. لانشر الألعاب
+          echo '#!/bin/bash
+clear; echo "=================================================="; echo " KSO-AbyssOS - اختر كابوسك 💀"; echo " برمجة بواسطة عبد الله و عبد الرحمن هاني رجب [ kso ]"; echo "=================================================="; echo " 1) SCP-087-B"; echo " 2) IMSCARED"; echo " 3) Anatomy"; echo " 4) Spookys"; echo " 5) Cry of Fear"; echo " 6) Darkwood"; echo " 7) World of Horror"; echo " 8) Paratopic"; echo " 9) Static"; echo "10) Buddy Sim 1984"; echo " 0) اهرب"; read -p "اختيارك: " c; case $c in 1) cd /opt/kso-games/01-SCP087 &&./scp087b ;; 2) cd /opt/kso-games/02-IMSCARED &&./IMSCARED ;; 3) cd /opt/kso-games/03-Anatomy &&./Anatomy ;; 4) cd /opt/kso-games/04-Spookys &&./SpookysJumpScareMansion.x86_64 ;; 5) cd /opt/kso-games/05-CryOfFear &&./cryoffear ;; 6) cd /opt/kso-games/06-Darkwood &&./Darkwood ;; 7) cd /opt/kso-games/07-WOH &&./worldofhorror ;; 8) cd /opt/kso-games/08-Paratopic &&./Paratopic.x86_64 ;; 9) cd /opt/kso-games/09-Static &&./TheStaticSpeaksMyName ;; 10) cd /opt/kso-games/10-Buddy &&./BuddySimulator1984 ;; 0) exit ;; esac' > config/includes.chroot/usr/bin/kso-games
+          chmod +x config/includes.chroot/usr/bin/kso-games
+
+          # 12. واجهة i3 الملعونة + اختصارات
+          mkdir -p config/includes.chroot/etc/skel/.config/i3
+          echo 'exec --no-startup-id bash -c "sleep 5 && espeak -v ar '\''لقد استيقظ'\'' && kso-jumpscare &"
+exec --no-startup-id bash -c "sleep 8 && xterm -hold -fg red -bg black -e \"echo KSO-AbyssOS Activated && echo برمجة بواسطة عبد الله و عبد الرحمن هاني رجب [ kso ] && echo أنت لست وحدك هنا... && echo Windows+G للرعب | Windows+X قفل سريع | Windows+Q قفل مع وداع\""
+bindsym $mod+Return exec xterm -fg red -bg black
+bindsym $mod+g exec xterm -fg red -bg black -e kso-games
+bindsym $mod+k exec pkill -f kso-jumpscare && sleep 600 && kso-jumpscare &
+bindsym $mod+s exec bash /opt/kso-sounds/scream.sh
+bindsym $mod+x exec kso-quickoff
+bindsym $mod+q exec kso-shutdown
+bar { status_command echo "KSO-WATCHING | Windows+X=OFF" colors { background #000 border #FF0000 text #FF0000 }
+client.focused #FF0000 #000 #FF0000 #FF0000' > config/includes.chroot/etc/skel/.config/i3/config
+
+          # 13. هوك البناء
+          echo 'plymouth-set-default-theme kso-abyss' > config/hooks/normal/0999-kso-theme.chroot
+          echo 'echo "kso-abyss" > /etc/hostname' >> config/hooks/normal/0999-kso-theme.chroot
+          chmod +x config/hooks/normal/0999-kso-theme.chroot
+
+      - name: 14. Build ISO - 4.8GB
+        run: cd abyss && sudo lb build
+
+      - name: 15. Upload to Pixeldrain
+        if: success()
+        run: |
+          curl -T abyss/live-image-amd64.hybrid.iso https://pixeldrain.com/api/file/ > link.txt
+          cat link.txt
