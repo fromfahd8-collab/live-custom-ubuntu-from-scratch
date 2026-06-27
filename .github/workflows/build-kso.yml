@@ -1,4 +1,4 @@
-name: Build KSO FUN - 11 GAMES V18.2 LIVE FINAL
+name: Build KSO FUN - 11 GAMES V18.4 LIVE FINAL
 
 on:
   workflow_dispatch:
@@ -8,22 +8,19 @@ jobs:
     runs-on: ubuntu-22.04
     timeout-minutes: 360
     steps:
-    - name: Maximize Build Space
-      run: sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /usr/share/swift /usr/local/.ghcup && sudo apt-get clean && df -h
+    - run: sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /usr/share/swift /usr/local/.ghcup && sudo apt-get clean
 
-    - name: Install Tools
-      run: |
+    - run: |
         sudo apt-get update -qq
         sudo apt-get install -y grub-efi-amd64-bin mtools imagemagick squashfs-tools git fdisk xorriso i3 feh rofi fonts-noto-color-emoji fonts-dejavu-core curl unzip minetest retroarch libretro-* linux-generic casper -qq
 
-    - name: Build KSO System From Scratch
-      run: |
+    - run: |
         set -e
         sudo rm -rf rootfs /tmp/kso_games
         sudo mkdir -p rootfs
         cd rootfs
         
-        # KSO Theme
+        # 1. البوت KSO - برمجة عبد الله و عبد الرحمن هاني [ kso ]
         sudo mkdir -p usr/share/plymouth/themes/kso etc/alternatives
         echo '[Plymouth Theme]
         Name=KSO-GamerOS-FUN
@@ -48,11 +45,11 @@ jobs:
         ModuleName=script' | sudo tee usr/share/plymouth/themes/kso/kso.plymouth
         sudo ln -sf /usr/share/plymouth/themes/kso/kso.plymouth etc/alternatives/default.plymouth
 
-        # Wallpaper
+        # 2. الخلفية KSO الشيك
         sudo mkdir -p usr/share/backgrounds
         sudo convert -size 1920x1080 xc:'#0F172A' -fill '#3B82F6' -font DejaVu-Sans -pointsize 120 -gravity center -annotate +0-80 'KSO' -fill white -pointsize 40 -annotate +0+40 'برمجة عبد الله و عبد الرحمن هاني' -fill '#60A5FA' -pointsize 30 -annotate +0+90 '11 GAMES LIVE' usr/share/backgrounds/kso-wall.jpg
 
-        # i3
+        # 3. i3 كامل + Windows+Q
         sudo mkdir -p usr/bin etc/skel/.config/i3
         echo '#!/bin/bash
         systemctl poweroff' | sudo tee usr/bin/kso-shutdown && sudo chmod +x usr/bin/kso-shutdown
@@ -66,7 +63,7 @@ jobs:
         gaps inner 8
         client.focused #3B82F6 #1E293B #FFFFFF #3B82F6' | sudo tee etc/skel/.config/i3/config
 
-        # Minetest
+        # 4. Minetest خفيف
         sudo mkdir -p etc/skel/.minetest
         echo 'video_driver = opengl
         enable_shaders = false
@@ -76,38 +73,38 @@ jobs:
         fps_max = 60
         render_distance = 50' | sudo tee etc/skel/.minetest/minetest.conf
 
-        # Games - سطر سطر عشان ميبقاش فيه لزق
+        # 5. الـ 11 لعبه كامله - سطر سطر عشان الصلاحيات
         sudo mkdir -p /tmp/kso_games/psx /tmp/kso_games/snes /tmp/kso_games/gba /tmp/kso_games/arcade
+        
         cd /tmp/kso_games/psx
         wget -q --tries=3 https://archive.org/download/PSX-Homebrew-Demos/PSXDoom.PBP -O Doom.PBP
         wget -q --tries=3 https://archive.org/download/psx-homebrew/DukeNukem.PBP -O Duke.PBP
         wget -q --tries=3 https://archive.org/download/psx-homebrew/Wolf3D.PBP -O Wolf3D.PBP
-        sudo chmod 644 *.PBP
+        sudo chmod 777.
         
         cd /tmp/kso_games/snes
         wget -q --tries=3 https://archive.org/download/snes-homebrew/SNES-Tetris.sfc -O Tetris.sfc
         wget -q --tries=3 https://archive.org/download/snes-homebrew/SuperMarioWorld.sfc -O Mario.sfc
         wget -q --tries=3 https://archive.org/download/snes-homebrew/StreetFighter2.sfc -O SF2.sfc
-        sudo chmod 644 *.sfc
+        sudo chmod 777.
         
         cd /tmp/kso_games/gba
         wget -q --tries=3 https://archive.org/download/gba-homebrew/CaveStory.gba -O CaveStory.gba
         wget -q --tries=3 https://archive.org/download/gba-homebrew/2004-mine.gba -O Mine.gba
-        sudo chmod 644 *.gba
+        sudo chmod 777.
         
         cd /tmp/kso_games/arcade
         wget -q --tries=3 https://archive.org/download/mame-0.259-roms/arkanoid.zip -O Arkanoid.zip
         wget -q --tries=3 https://archive.org/download/mame-0.259-roms/pacman.zip -O Pacman.zip
-        sudo chmod 644 *.zip
+        sudo chmod 777.
         
-        # Squashfs - مسافة صح 100%
+        # 6. ضغط الايزو
         cd $GITHUB_WORKSPACE/rootfs
         sudo mkdir -p usr/share/games/kso
         sudo cp -r /tmp/kso_games/* usr/share/games/kso/
         sudo mksquashfs. filesystem.squashfs -comp xz -b 1024K
 
-    - name: Make LIVE ISO with xorriso
-      run: |
+    - run: |
         sudo mkdir -p isohybrid
         sudo cp /boot/vmlinuz-* isohybrid/vmlinuz
         sudo cp /boot/initrd.img-* isohybrid/initrd
@@ -120,8 +117,7 @@ jobs:
         sudo cp /usr/lib/grub/x86_64-efi/monolithic/grubx64.efi isohybrid/BOOTX64.EFI
         sudo xorriso -as mkisofs -o KSO-FUN-LIVE.iso -isohybrid-gpt-basdat -eltorito-alt-boot -e BOOTX64.EFI -no-emul-boot -graft-points /boot/grub= isohybrid/ /casper/filesystem.squashfs=isohybrid/filesystem.squashfs /casper/vmlinuz=isohybrid/vmlinuz /casper/initrd=isohybrid/initrd -V "KSO_LIVE".
 
-    - name: Upload ISO
-      uses: actions/upload-artifact@v4
+    - uses: actions/upload-artifact@v4
       with:
-        name: KSO-FUN-LIVE-V18.2
+        name: KSO-FUN-LIVE-V18.4
         path: KSO-FUN-LIVE.iso
