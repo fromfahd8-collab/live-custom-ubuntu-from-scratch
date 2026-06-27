@@ -1,4 +1,4 @@
-name: Build KSO FUN - 11 GAMES V20.8 NO-SUDO SQUASH
+name: Build KSO FUN - 11 GAMES V20.9 ULTRA
 
 on:
   workflow_dispatch:
@@ -17,8 +17,8 @@ jobs:
     - name: Build RootFS + Download 11 Games
       run: |
         set -e
-        sudo rm -rf rootfs /tmp/kso_games
-        mkdir -p rootfs # <== بدون sudo
+        rm -rf rootfs /tmp/kso_games
+        mkdir -p rootfs
         cd rootfs
         
         mkdir -p usr/share/plymouth/themes/kso etc/alternatives usr/bin etc/skel/.config/i3 etc/skel/.minetest
@@ -50,11 +50,12 @@ jobs:
         EOF
         mv /tmp/minetest.conf etc/skel/.minetest/minetest.conf
 
+        # <== الحل: هنطبع كل حاجة
         set +e 
         mkdir -p /tmp/kso_games/psx /tmp/kso_games/snes /tmp/kso_games/gba /tmp/kso_games/arcade
         cd /tmp/kso_games
         
-        download() { for i in 1 2 3; do wget -T 15 -t 1 -q $1 -O $2 && return 0 || sleep 2; done; wget -T 15 -t 1 -q $3 -O $2 || return 0; }
+        download() { echo "TRYING: $2"; wget -T 30 -t 2 -q $1 -O $2 && echo "OK: $2" && return 0 || wget -T 30 -t 2 -q $3 -O $2 && echo "OK2: $2" && return 0 || echo "FAIL: $2"; }
         
         download "https://archive.org/download/PSX-Homebrew-Demos/PSXDoom.PBP" "psx/Doom.PBP" "https://archive.org/download/psx-homebrew/PSXDoom.PBP"
         download "https://archive.org/download/PSX-Homebrew-Demos/Duke3D.PBP" "psx/Duke3D.PBP" "https://archive.org/download/psx-homebrew/Duke3D.PBP"
@@ -66,32 +67,36 @@ jobs:
         download "https://archive.org/download/gba-homebrew/2048.gba" "gba/2048.gba" "https://archive.org/download/gba-homebrew-2/2048.gba"
         download "https://archive.org/download/mame-0.259-roms/arkanoid.zip" "arcade/Arkanoid.zip" "https://archive.org/download/mame-2003-roms/arkanoid.zip"
         download "https://archive.org/download/mame-0.259-roms/pacman.zip" "arcade/Pacman.zip" "https://archive.org/download/mame-2003-roms/pacman.zip"
+        
+        echo "====== DEBUG LS /tmp/kso_games ======"
+        ls -lhR /tmp/kso_games # <== اتأكد ان الملفات مش 0
         set -e
         
-        echo "====== KSO GAME REPORT V20.8 ======"
-        find /tmp/kso_games -type f -printf "%s bytes  %p\n" | sort
-        echo "SUCCESS:" $(find /tmp/kso_games -type f | wc -l) "/ 11"
+        echo "====== KSO GAME REPORT V20.9 ======"
+        COUNT=$(find /tmp/kso_games -type f -size +1k | wc -l) # <== عد الملفات اللي اكبر من 1k
+        echo "SUCCESS: $COUNT / 11"
+        if [ "$COUNT" -lt "11" ]; then echo "ERROR: Missing games, aborting"; exit 1; fi # <== وقف لو ناقص
         echo "==================================="
         
         cd $GITHUB_WORKSPACE/rootfs
-        mkdir -p usr/share/games/kso # <== بدون sudo
-        cp -r /tmp/kso_games/* usr/share/games/kso/ # <== بدون sudo
-        ls -lh usr/share/games/kso # <== اتأكد
-        mksquashfs . filesystem.squashfs -comp xz # <== بدون sudo = الحل
+        mkdir -p usr/share/games/kso
+        cp -r /tmp/kso_games/* usr/share/games/kso/
+        ls -lh usr/share/games/kso # <== اتأكد تاني
+        mksquashfs . filesystem.squashfs -comp xz
         ls -lh filesystem.squashfs # <== لازم 200M+
 
-    - name: Create ISO - V20.8 FIX
+    - name: Create ISO - V20.9 FIX
       run: |
         cd $GITHUB_WORKSPACE
-        rm -rf isohybrid # <== بدون sudo
+        rm -rf isohybrid
         mkdir isohybrid
         
         KERNEL=$(ls /boot/vmlinuz-* | head -n 1)
         INITRD=$(ls /boot/initrd.img-* | head -n 1)
-        sudo cp $KERNEL isohybrid/vmlinuz # <== sudo هنا عادي عشان /boot
+        sudo cp $KERNEL isohybrid/vmlinuz
         sudo cp $INITRD isohybrid/initrd 
-        cp rootfs/filesystem.squashfs isohybrid/ # <== بدون sudo
-        ls -lh isohybrid/ # <== لازم 3 ملفات + 200M+
+        cp rootfs/filesystem.squashfs isohybrid/
+        ls -lh isohybrid/
         
         echo 'menuentry "KSO" { linux /vmlinuz boot=casper quiet splash }' | tee isohybrid/grub.cfg
         sudo cp /usr/lib/grub/x86_64-efi/monolithic/grubx64.efi isohybrid/BOOTX64.EFI
@@ -100,5 +105,5 @@ jobs:
     - name: Upload ISO
       uses: actions/upload-artifact@v4
       with:
-        name: KSO-FUN-LIVE-V20.8
+        name: KSO-FUN-LIVE-V20.9
         path: KSO-FUN-LIVE.iso
