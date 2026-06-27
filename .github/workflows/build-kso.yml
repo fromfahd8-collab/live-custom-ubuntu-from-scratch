@@ -1,4 +1,4 @@
-name: Build KSO FUN - 11 GAMES V21.5 FINAL FIX
+name: Build KSO FUN - 11 GAMES V21.6 FINAL
 
 on:
   workflow_dispatch:
@@ -11,7 +11,7 @@ jobs:
     - name: Free Disk Space
       run: sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /usr/share/swift /usr/local/.ghcup && sudo apt-get clean
 
-    - name: Install Tools V21.5
+    - name: Install Tools V21.6
       run: |
         sudo add-apt-repository ppa:libretro/stable -y
         sudo apt-get update -qq
@@ -75,7 +75,7 @@ jobs:
         download "https://github.com/gba-homebrew/roms/raw/main/Tetris.gba" "gba/Tetris.gba"
         set -e
         
-        echo "====== KSO GAME REPORT V21.5 ======"
+        echo "====== KSO GAME REPORT V21.6 ======"
         COUNT=$(find /tmp/kso_games -type f -size +1k | wc -l)
         echo "SUCCESS: $COUNT / 11"
         if [ "$COUNT" -lt "11" ]; then echo "ERROR: Missing games, aborting"; exit 1; fi
@@ -86,11 +86,11 @@ jobs:
         mksquashfs . filesystem.squashfs -comp xz
         ls -lh filesystem.squashfs
 
-    - name: Create ISO - V21.5 FIX
+    - name: Create ISO - V21.6 FIX
       run: |
         cd $GITHUB_WORKSPACE
         rm -rf isohybrid
-        mkdir -p isohybrid/boot/grub # <== الحل: نعمل فولدر grub
+        mkdir -p isohybrid/boot/grub
         
         KERNEL=$(ls /boot/vmlinuz-* | head -n 1)
         INITRD=$(ls /boot/initrd.img-* | head -n 1)
@@ -98,20 +98,15 @@ jobs:
         sudo cp $INITRD isohybrid/initrd 
         cp rootfs/filesystem.squashfs isohybrid/
         
-        echo 'menuentry "KSO" { linux /vmlinuz boot=casper quiet splash }' | tee isohybrid/boot/grub/grub.cfg # <== هنا جوه grub
+        echo 'menuentry "KSO" { linux /vmlinuz boot=casper quiet splash }' | tee isohybrid/boot/grub/grub.cfg
         sudo cp /usr/lib/grub/x86_64-efi/monolithic/grubx64.efi isohybrid/BOOTX64.EFI
         ls -lhR isohybrid/
         
-        sudo xorriso -as mkisofs -o KSO-FUN-LIVE.iso \
-        -isohybrid-gpt-basdat -eltorito-alt-boot -e BOOTX64.EFI -no-emul-boot \
-        -graft-points /boot/grub/grub.cfg=isohybrid/boot/grub/grub.cfg \ # <== صلحنا المسار
-        /casper/filesystem.squashfs=isohybrid/filesystem.squashfs \
-        /casper/vmlinuz=isohybrid/vmlinuz \
-        /casper/initrd=isohybrid/initrd \
-        -V "KSO_LIVE" isohybrid/ # <== ضفنا isohybrid/ في الاخر
+        # <== الحل: سطر واحد بدون \
+        sudo xorriso -as mkisofs -o KSO-FUN-LIVE.iso -isohybrid-gpt-basdat -eltorito-alt-boot -e BOOTX64.EFI -no-emul-boot -graft-points /boot/grub/grub.cfg=isohybrid/boot/grub/grub.cfg /casper/filesystem.squashfs=isohybrid/filesystem.squashfs /casper/vmlinuz=isohybrid/vmlinuz /casper/initrd=isohybrid/initrd -V "KSO_LIVE" isohybrid/
 
     - name: Upload ISO
       uses: actions/upload-artifact@v4
       with:
-        name: KSO-FUN-LIVE-V21.5
+        name: KSO-FUN-LIVE-V21.6
         path: KSO-FUN-LIVE.iso
