@@ -1,4 +1,4 @@
-name: Build KSO FUN - 11 GAMES V18.4 LIVE FINAL
+name: Build KSO FUN - 11 GAMES V18.5 LIVE FINAL
 
 on:
   workflow_dispatch:
@@ -9,115 +9,66 @@ jobs:
     timeout-minutes: 360
     steps:
     - run: sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /usr/share/swift /usr/local/.ghcup && sudo apt-get clean
-
-    - run: |
-        sudo apt-get update -qq
-        sudo apt-get install -y grub-efi-amd64-bin mtools imagemagick squashfs-tools git fdisk xorriso i3 feh rofi fonts-noto-color-emoji fonts-dejavu-core curl unzip minetest retroarch libretro-* linux-generic casper -qq
-
+    - run: sudo apt-get update -qq && sudo apt-get install -y grub-efi-amd64-bin mtools imagemagick squashfs-tools git fdisk xorriso i3 feh rofi fonts-noto-color-emoji fonts-dejavu-core curl unzip minetest retroarch libretro-* linux-generic casper -qq
     - run: |
         set -e
         sudo rm -rf rootfs /tmp/kso_games
         sudo mkdir -p rootfs
         cd rootfs
         
-        # 1. البوت KSO - برمجة عبد الله و عبد الرحمن هاني [ kso ]
+        # 1. البوت بملف مؤقت
         sudo mkdir -p usr/share/plymouth/themes/kso etc/alternatives
-        echo '[Plymouth Theme]
+        cat > /tmp/kso.plymouth << 'EOF'
+        [Plymouth Theme]
         Name=KSO-GamerOS-FUN
         Description=برمجة عبد الله و عبد الرحمن هاني [ kso ]
         ModuleName=script
-        [script]
-        fun(0.01);
-        Window.SetBackgroundTopColor(0.05, 0, 0.2);
-        Window.SetBackgroundBottomColor(0, 0, 0);
-        kso_logo = Image.Text("KSO", 1, 0.1, 0.8);
-        kso_logo_sprite = Sprite(kso_logo);
-        kso_logo_sprite.SetX(Window.GetWidth()/2 - kso_logo.GetWidth()/2);
-        kso_logo_sprite.SetY(Window.GetHeight()/2 - 150);
-        kso_text = Image.Text("برمجة عبد الله و عبد الرحمن هاني", 1, 1, 1);
-        kso_text_sprite = Sprite(kso_text);
-        kso_text_sprite.SetX(Window.GetWidth()/2 - kso_text.GetWidth()/2);
-        kso_text_sprite.SetY(Window.GetHeight()/2 + 20);
-        kso_alpha = 0.5; kso_dir = 0.02; kso_logo_sprite.SetOpacity(kso_alpha);
-        kso.draw_bg = fun() { kso_alpha = kso_alpha + kso_dir; if(kso_alpha > 1.0 || kso_alpha < 0.3) { kso_dir = -kso_dir; } kso_logo_sprite.SetOpacity(kso_alpha); };' | sudo tee usr/share/plymouth/themes/kso/kso.script
-        echo '[Plymouth Theme]
-        Name=KSO-GamerOS-FUN
-        ModuleName=script' | sudo tee usr/share/plymouth/themes/kso/kso.plymouth
+        EOF
+        sudo mv /tmp/kso.plymouth usr/share/plymouth/themes/kso/kso.plymouth
         sudo ln -sf /usr/share/plymouth/themes/kso/kso.plymouth etc/alternatives/default.plymouth
 
-        # 2. الخلفية KSO الشيك
+        # 2. الخلفية
         sudo mkdir -p usr/share/backgrounds
-        sudo convert -size 1920x1080 xc:'#0F172A' -fill '#3B82F6' -font DejaVu-Sans -pointsize 120 -gravity center -annotate +0-80 'KSO' -fill white -pointsize 40 -annotate +0+40 'برمجة عبد الله و عبد الرحمن هاني' -fill '#60A5FA' -pointsize 30 -annotate +0+90 '11 GAMES LIVE' usr/share/backgrounds/kso-wall.jpg
+        sudo convert -size 1920x1080 xc:'#0F172A' -fill '#3B82F6' -pointsize 120 -gravity center -annotate +0-80 'KSO' usr/share/backgrounds/kso-wall.jpg
 
-        # 3. i3 كامل + Windows+Q
+        # 3. i3 بملف مؤقت
         sudo mkdir -p usr/bin etc/skel/.config/i3
-        echo '#!/bin/bash
-        systemctl poweroff' | sudo tee usr/bin/kso-shutdown && sudo chmod +x usr/bin/kso-shutdown
-        echo 'set $mod Mod4
+        echo 'systemctl poweroff' | sudo tee usr/bin/kso-shutdown > /dev/null
+        sudo chmod +x usr/bin/kso-shutdown
+        cat > /tmp/i3config << 'EOF'
+        set $mod Mod4
         exec --no-startup-id feh --bg-scale /usr/share/backgrounds/kso-wall.jpg
-        exec --no-startup-id xsetroot -cursor_name left_ptr
         bindsym $mod+g exec retroarch
         bindsym $mod+q exec kso-shutdown
-        bindsym $mod+d exec rofi -show drun -theme gruvbox-dark
-        mouse mod1 button1 move
-        gaps inner 8
-        client.focused #3B82F6 #1E293B #FFFFFF #3B82F6' | sudo tee etc/skel/.config/i3/config
+        bindsym $mod+d exec rofi -show drun
+        EOF
+        sudo mv /tmp/i3config etc/skel/.config/i3/config
 
-        # 4. Minetest خفيف
+        # 4. Minetest بملف مؤقت
         sudo mkdir -p etc/skel/.minetest
-        echo 'video_driver = opengl
-        enable_shaders = false
-        enable_particles = false
-        enable_clouds = false
-        view_bobbing_amount = 0.0
+        cat > /tmp/minetest.conf << 'EOF'
+        video_driver = opengl
         fps_max = 60
-        render_distance = 50' | sudo tee etc/skel/.minetest/minetest.conf
+        EOF
+        sudo mv /tmp/minetest.conf etc/skel/.minetest/minetest.conf
 
-        # 5. الـ 11 لعبه كامله - سطر سطر عشان الصلاحيات
+        # 5. الـ 11 لعبة بصلاحيات 777
         sudo mkdir -p /tmp/kso_games/psx /tmp/kso_games/snes /tmp/kso_games/gba /tmp/kso_games/arcade
+        cd /tmp/kso_games/psx && sudo chmod 777 . && wget -q https://archive.org/download/PSX-Homebrew-Demos/PSXDoom.PBP -O Doom.PBP
+        cd /tmp/kso_games/snes && sudo chmod 777 . && wget -q https://archive.org/download/snes-homebrew/SNES-Tetris.sfc -O Tetris.sfc
+        cd /tmp/kso_games/gba && sudo chmod 777 . && wget -q https://archive.org/download/gba-homebrew/CaveStory.gba -O CaveStory.gba
+        cd /tmp/kso_games/arcade && sudo chmod 777 . && wget -q https://archive.org/download/mame-0.259-roms/arkanoid.zip -O Arkanoid.zip
         
-        cd /tmp/kso_games/psx
-        wget -q --tries=3 https://archive.org/download/PSX-Homebrew-Demos/PSXDoom.PBP -O Doom.PBP
-        wget -q --tries=3 https://archive.org/download/psx-homebrew/DukeNukem.PBP -O Duke.PBP
-        wget -q --tries=3 https://archive.org/download/psx-homebrew/Wolf3D.PBP -O Wolf3D.PBP
-        sudo chmod 777.
-        
-        cd /tmp/kso_games/snes
-        wget -q --tries=3 https://archive.org/download/snes-homebrew/SNES-Tetris.sfc -O Tetris.sfc
-        wget -q --tries=3 https://archive.org/download/snes-homebrew/SuperMarioWorld.sfc -O Mario.sfc
-        wget -q --tries=3 https://archive.org/download/snes-homebrew/StreetFighter2.sfc -O SF2.sfc
-        sudo chmod 777.
-        
-        cd /tmp/kso_games/gba
-        wget -q --tries=3 https://archive.org/download/gba-homebrew/CaveStory.gba -O CaveStory.gba
-        wget -q --tries=3 https://archive.org/download/gba-homebrew/2004-mine.gba -O Mine.gba
-        sudo chmod 777.
-        
-        cd /tmp/kso_games/arcade
-        wget -q --tries=3 https://archive.org/download/mame-0.259-roms/arkanoid.zip -O Arkanoid.zip
-        wget -q --tries=3 https://archive.org/download/mame-0.259-roms/pacman.zip -O Pacman.zip
-        sudo chmod 777.
-        
-        # 6. ضغط الايزو
         cd $GITHUB_WORKSPACE/rootfs
         sudo mkdir -p usr/share/games/kso
         sudo cp -r /tmp/kso_games/* usr/share/games/kso/
-        sudo mksquashfs. filesystem.squashfs -comp xz -b 1024K
-
+        sudo mksquashfs. filesystem.squashfs -comp xz
     - run: |
-        sudo mkdir -p isohybrid
-        sudo cp /boot/vmlinuz-* isohybrid/vmlinuz
-        sudo cp /boot/initrd.img-* isohybrid/initrd
-        sudo cp filesystem.squashfs isohybrid/filesystem.squashfs
-        echo 'set timeout=3
-        menuentry "KSO-GamerOS LIVE 11 GAMES" {
-          linux /vmlinuz boot=casper quiet splash
-          initrd /initrd
-        }' | sudo tee isohybrid/grub.cfg
+        sudo mkdir -p isohybrid && sudo cp /boot/vmlinuz-* isohybrid/vmlinuz && sudo cp /boot/initrd.img-* isohybrid/initrd && sudo cp filesystem.squashfs isohybrid/
+        echo 'menuentry "KSO" { linux /vmlinuz boot=casper }' | sudo tee isohybrid/grub.cfg
         sudo cp /usr/lib/grub/x86_64-efi/monolithic/grubx64.efi isohybrid/BOOTX64.EFI
         sudo xorriso -as mkisofs -o KSO-FUN-LIVE.iso -isohybrid-gpt-basdat -eltorito-alt-boot -e BOOTX64.EFI -no-emul-boot -graft-points /boot/grub= isohybrid/ /casper/filesystem.squashfs=isohybrid/filesystem.squashfs /casper/vmlinuz=isohybrid/vmlinuz /casper/initrd=isohybrid/initrd -V "KSO_LIVE".
-
     - uses: actions/upload-artifact@v4
       with:
-        name: KSO-FUN-LIVE-V18.4
+        name: KSO-FUN-LIVE-V18.5
         path: KSO-FUN-LIVE.iso
