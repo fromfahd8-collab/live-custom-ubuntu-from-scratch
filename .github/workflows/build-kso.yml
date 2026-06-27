@@ -1,4 +1,4 @@
-name: Build KSO FUN - 11 GAMES V18.0 LIVE FINAL
+name: Build KSO FUN - 11 GAMES V18.1 LIVE FINAL
 
 on:
   workflow_dispatch:
@@ -74,15 +74,15 @@ jobs:
 
         sudo mkdir -p /tmp/kso_games/psx /tmp/kso_games/snes /tmp/kso_games/gba /tmp/kso_games/arcade
         cd /tmp/kso_games
-        cd psx && wget -q --tries=3 https://archive.org/download/PSX-Homebrew-Demos/PSXDoom.PBP -O Doom.PBP && wget -q --tries=3 https://archive.org/download/psx-homebrew/DukeNukem.PBP -O Duke.PBP && wget -q --tries=3 https://archive.org/download/psx-homebrew/Wolf3D.PBP -O Wolf3D.PBP
-        cd../snes && wget -q --tries=3 https://archive.org/download/snes-homebrew/SNES-Tetris.sfc -O Tetris.sfc && wget -q --tries=3 https://archive.org/download/snes-homebrew/SuperMarioWorld.sfc -O Mario.sfc && wget -q --tries=3 https://archive.org/download/snes-homebrew/StreetFighter2.sfc -O SF2.sfc
-        cd../gba && wget -q --tries=3 https://archive.org/download/gba-homebrew/CaveStory.gba -O CaveStory.gba && wget -q --tries=3 https://archive.org/download/gba-homebrew/2004-mine.gba -O Mine.gba
-        cd../arcade && wget -q --tries=3 https://archive.org/download/mame-0.259-roms/arkanoid.zip -O Arkanoid.zip && wget -q --tries=3 https://archive.org/download/mame-0.259-roms/pacman.zip -O Pacman.zip
+        cd psx && wget -q --tries=3 https://archive.org/download/PSX-Homebrew-Demos/PSXDoom.PBP -O Doom.PBP && wget -q --tries=3 https://archive.org/download/psx-homebrew/DukeNukem.PBP -O Duke.PBP && wget -q --tries=3 https://archive.org/download/psx-homebrew/Wolf3D.PBP -O Wolf3D.PBP && sudo chmod 644 *.PBP # <- صلح الصلاحيات
+        cd../snes && wget -q --tries=3 https://archive.org/download/snes-homebrew/SNES-Tetris.sfc -O Tetris.sfc && wget -q --tries=3 https://archive.org/download/snes-homebrew/SuperMarioWorld.sfc -O Mario.sfc && wget -q --tries=3 https://archive.org/download/snes-homebrew/StreetFighter2.sfc -O SF2.sfc && sudo chmod 644 *.sfc # <- cd../ بمسافة
+        cd../gba && wget -q --tries=3 https://archive.org/download/gba-homebrew/CaveStory.gba -O CaveStory.gba && wget -q --tries=3 https://archive.org/download/gba-homebrew/2004-mine.gba -O Mine.gba && sudo chmod 644 *.gba
+        cd../arcade && wget -q --tries=3 https://archive.org/download/mame-0.259-roms/arkanoid.zip -O Arkanoid.zip && wget -q --tries=3 https://archive.org/download/mame-0.259-roms/pacman.zip -O Pacman.zip && sudo chmod 644 *.zip
         
         cd $GITHUB_WORKSPACE/rootfs
         sudo mkdir -p usr/share/games/kso
         sudo cp -r /tmp/kso_games/* usr/share/games/kso/
-        sudo mksquashfs.../filesystem.squashfs -comp xz -b 1024K # ضغطنا علطول من غير فولدر iso
+        sudo mksquashfs.../filesystem.squashfs -comp xz -b 1024K # <- مسافة قبل..
 
     - name: Make LIVE ISO with xorriso
       run: |
@@ -101,5 +101,5 @@ jobs:
     - name: Upload ISO
       uses: actions/upload-artifact@v4
       with:
-        name: KSO-FUN-LIVE-V18.0
+        name: KSO-FUN-LIVE-V18.1
         path: KSO-FUN-LIVE.iso
