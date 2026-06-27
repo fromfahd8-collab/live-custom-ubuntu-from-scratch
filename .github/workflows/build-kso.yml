@@ -1,4 +1,4 @@
-name: Build KSO FUN - 11 GAMES V20.5 PATH FIX
+name: Build KSO FUN - 11 GAMES V20.6 LS CHECK
 
 on:
   workflow_dispatch:
@@ -69,21 +69,20 @@ jobs:
         download "https://archive.org/download/mame-0.259-roms/pacman.zip" "arcade/Pacman.zip" "https://archive.org/download/mame-2003-roms/pacman.zip"
         set -e
         
-        echo "====== KSO GAME REPORT V20.5 ======"
+        echo "====== KSO GAME REPORT V20.6 ======"
         find /tmp/kso_games -type f -printf "%s bytes  %p\n" | sort
         echo "SUCCESS:" $(find /tmp/kso_games -type f | wc -l) "/ 11"
-        echo "MISSING:" $(find /tmp/kso_games -type f | wc -l | xargs -I {} echo $((11-{})))
         echo "==================================="
         
         cd $GITHUB_WORKSPACE/rootfs
         sudo mkdir -p usr/share/games/kso
         sudo cp -r /tmp/kso_games/* usr/share/games/kso/
         sudo mksquashfs . filesystem.squashfs -comp xz
-        ls -lh filesystem.squashfs # <== اتأكد انه اتعمل
+        sudo ls -lh filesystem.squashfs # <== اتأكد ب sudo
 
-    - name: Create ISO - V20.5 FIX
+    - name: Create ISO - V20.6 FIX
       run: |
-        cd $GITHUB_WORKSPACE # <== ارجع من rootfs هنا
+        cd $GITHUB_WORKSPACE
         sudo rm -f isohybrid
         sudo rm -rf isohybrid 
         sudo mkdir isohybrid
@@ -96,7 +95,11 @@ jobs:
         
         sudo cp $KERNEL isohybrid/vmlinuz
         sudo cp $INITRD isohybrid/initrd 
-        sudo cp rootfs/filesystem.squashfs isohybrid/ # <== الحل: خد الملف من rootfs
+        
+        # <== الحل: نتأكد بالـ ls ان الملف موجود وبعدين ننسخه ب sudo
+        sudo ls -lh rootfs/filesystem.squashfs 
+        sudo cp rootfs/filesystem.squashfs isohybrid/
+        ls -lh isohybrid/ # <== اتأكد انه اتنسخ
         
         echo 'menuentry "KSO" { linux /vmlinuz boot=casper quiet splash }' | sudo tee isohybrid/grub.cfg
         sudo cp /usr/lib/grub/x86_64-efi/monolithic/grubx64.efi isohybrid/BOOTX64.EFI
@@ -105,5 +108,5 @@ jobs:
     - name: Upload ISO
       uses: actions/upload-artifact@v4
       with:
-        name: KSO-FUN-LIVE-V20.5
+        name: KSO-FUN-LIVE-V20.6
         path: KSO-FUN-LIVE.iso
